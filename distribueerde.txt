@@ -1,0 +1,74 @@
+Protocols:
+	Server <-> User
+	Server <-> Licht
+	Server <- Temperatuur
+	Server <-> Ijskast
+	User <-> Ijskast
+
+Server:
+	ID's en Usernamen bijhouden
+	Unieke ID's geven aan apparaten
+	User registreren met unieke usernaam
+	Users binnen en buiten laten gaan
+	Status overview van licht
+	Licht aan en uit doen
+	Als alle users buiten -> alle lichten uit
+	Als een user terug binnnen -> lichten terug aan (zie hierboven welke lichten)
+	Geef User lijst uit ijskast
+	Laat users weten dat ijskast leeg is
+	Laat ijskast geopend worden
+	Alle comunicatie behalve ijskast
+	Behoud x aantal temperatuurgegevens
+	Geef huidige temperatuur (gemiddelde van sensoren)
+	Geef geschiedenis temperatuur
+	States sharen om de x tijd
+	States binnenkrijgen na herconnecteren
+
+User:
+	connecteren met uniek usernaam
+	binnen en buiten gaan (registreren kan alleen binnen)
+	Vraag lijst op met alle clients
+	Vraag alle lichten
+	Doe licht aan en uit
+	Vraag inhoud ijskast
+	Open ijskast
+		steek dingen in ijskast
+		haal dingen uit ijskast
+	Sluit ijskast (na commando of wegvallen user)
+	Vraag huidige temperatuur
+	Vraag geschiedenis temperatuur
+	Upgraden tot controller
+	Downgraden tot user
+
+Temperatuur Sensoren:
+	connecteren met uniek id
+	aanzetten met waarde (MOET DYNAMISCH)
+	elke x seconden waarde tussen -1 en 1 toevoegen aan temp
+
+Ijskast:
+	connecteren met uniek id
+	lijst met inhoud (mag uniek zijn om te testen)
+	geef lijst met inhoud
+	openen
+	sluiten
+	voeg toe
+	haal uit
+	if leeg: laat controller weten
+	Upgraden tot controller
+	Downgraden tot ijskast
+	
+Licht:
+	connecteren met uniek id
+	aan gaan
+	uit gaan
+	geef huidige staat
+
+
+GEBRUIK USER INTERFACE
+LIJST CONNECTED DEVICES MOET ALTIJD CORRECT ZIJN
+GEEN EXCEPIONS OP TERMINAL
+
+Computers: Ubuntu 16.04 met Java IDE, zonder libs pre-installed
+Moet op meerdere computers tegelijkertijd kunnen runnen
+Avro verplicht
+README verplicht
