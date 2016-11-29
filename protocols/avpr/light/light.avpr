@@ -1,0 +1,14 @@
+{
+	"namespace":"avro.domotics.proto.lights",
+	"protocol":"Lights",
+	"messages":{
+		"LightSwitch":{
+			"request":[],
+			"response":"null"
+		},
+		"GetLightState":{
+			"request":[],
+			"response":"boolean"
+		}
+	}
+}
