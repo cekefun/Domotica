@@ -12,6 +12,8 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import avro.domotics.proto.server.DomServer;
+import org.apache.avro.AvroRemoteException;
+
 
 public class User {
 	
@@ -77,11 +79,28 @@ public class User {
 			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
 			proxy.Switch(LightID);
 			client.close();
+		} catch(AvroRemoteException e){
+			System.out.println("Something");
+			System.err.println(e.getMessage());
+			
+		} catch(IOException e){
+			System.err.println("Error connecting to server");
+		} catch(Exception e){
+			return;
+		}
+		
+		try{
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
+			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			lights = proxy.GetLights();
+			client.close();
 		} catch(IOException e){
 			System.err.println("Error connecting to server");
 			e.printStackTrace(System.err);
 			System.exit(1);
 		}
+		
+		printMapStrBool(lights);
 		
 	}
 }

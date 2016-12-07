@@ -9,7 +9,7 @@ public class ConnectException extends AvroRemoteException {
 		port = ID;
 	}
 	
-	public String what(){
+	public String getMessage(){
 		return "Couldn't connect to port "+port.toString();
 	}
 }

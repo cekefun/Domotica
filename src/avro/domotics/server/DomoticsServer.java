@@ -74,7 +74,8 @@ public class DomoticsServer implements DomServer{
 		int result = 0;
 		for(String key: clients.keySet()){
 			for(Integer entry: clients.get(key)){
-				if (entry.intValue() > result){
+				System.out.println(entry);
+				if (entry.intValue() >= result){
 					result = entry.intValue()+1;
 				}
 			}

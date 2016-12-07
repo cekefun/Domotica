@@ -11,7 +11,7 @@ public class ExistException extends AvroRemoteException {
 		port = ID;
 	}
 	
-	public String what(){
+	public String getMessage(){
 		return "Couldn't find a "+type+" with ID "+port.toString();
 	}
 }
