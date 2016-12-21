@@ -3,6 +3,8 @@ package avro.domotics.lights.client;
 
 import java.io.IOException ;
 import java.net.InetSocketAddress;
+import java.util.Scanner;
+
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.Server;
@@ -35,6 +37,9 @@ public class LightClient implements Lights{
 			try{
 				server.join();
 			} catch(InterruptedException e){}
+		}
+		public void stop(){
+			server.close();
 		}
 	}
 	
@@ -79,6 +84,16 @@ public class LightClient implements Lights{
 		
 		LightClient Light = new LightClient();
 		Light.serverRunning.run(ID);
+		while(true){
+			String input = "";
+			Scanner s = new Scanner(System.in);
+			input = s.next();
+			s.close();
+			if (input =="exit"){
+				Light.serverRunning.stop();
+				return;
+			}
+		}
 		
 	}
 }

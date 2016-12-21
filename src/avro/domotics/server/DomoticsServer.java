@@ -14,6 +14,7 @@ import avro.domotics.proto.server.DomServer;
 import avro.domotics.exceptions.ConnectException;
 import avro.domotics.exceptions.ExistException;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,7 +24,7 @@ import java.util.Vector;
 
 public class DomoticsServer implements DomServer{
 	static HashMap<String,Set<Integer> > clients = new HashMap<String,Set<Integer> >();
-	static HashMap<String,Integer> users = new HashMap<String,Integer>();
+	static HashMap<String,SimpleEntry<Integer,Boolean>> users = new HashMap<String,SimpleEntry<Integer,Boolean> >();
 	
 	public static void main(String[] args){
 		if (clients.get("server") == null){
@@ -100,11 +101,13 @@ public class DomoticsServer implements DomServer{
 	@Override
 	public int ConnectUser(CharSequence username) throws AvroRemoteException {
 		if (users.containsKey(username)){
-			return users.get(username);
+			users.get(username).setValue(true);
+			return users.get(username).getKey();
 		}
 		int ID = getFreeID();
 		String name = username.toString();
-		users.put(name, ID);
+		SimpleEntry<Integer,Boolean> tuple = new SimpleEntry<Integer,Boolean>(ID,true);
+		users.put(name, tuple);
 		if(clients.get("users") == null){
 			Set<Integer> values = new HashSet<Integer>();
 			clients.put("users", values);
@@ -167,4 +170,12 @@ public class DomoticsServer implements DomServer{
 		}
 		return result;
 	}
+
+	@Override
+	public Void LeaveHouse(CharSequence username) throws AvroRemoteException {
+		users.get(username).setValue(false);
+		return null;
+	}
+	
+	
 }
