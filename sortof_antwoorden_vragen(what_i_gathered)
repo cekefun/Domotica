@@ -1,0 +1,6 @@
+Inet address, factory class java
+verschillende methodes, geef een ip address, in strings meegeven als argument in eclipse InetAddress.getByName (args 0 of 1) <- probably what you were looking for
+adressen intikken als command line args
+
+vraag 2, niet echt direct een antwoord
+
