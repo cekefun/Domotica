@@ -3,7 +3,6 @@ package avro.domotics.lights.client;
 
 import java.io.IOException ;
 import java.net.InetSocketAddress;
-import java.util.Scanner;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
@@ -17,13 +16,14 @@ import avro.domotics.proto.server.DomServer;
 
 
 public class LightClient implements Lights{
-	protected boolean state;
-	protected Server server = null;
-	protected ServerThread serverRunning = new ServerThread();
+	private boolean state;
+	private Server server = null;
+	private Thread serverRunning = new Thread(new ServerThread());
+	private Integer lightID;
 	
 	private class ServerThread implements Runnable {
 		public void run(){
-			this.run(6789);
+			this.run(lightID);
 		}
 		public void run(Integer ID){
 			try{
@@ -37,9 +37,6 @@ public class LightClient implements Lights{
 			try{
 				server.join();
 			} catch(InterruptedException e){}
-		}
-		public void stop(){
-			server.close();
 		}
 	}
 	
@@ -60,16 +57,7 @@ public class LightClient implements Lights{
 		return state;
 	}
 	
-	
-	public static void main(String[] args){
-		int serverAddress = 6789;
-		int ID = 7891;
-		if(args.length > 1){
-			serverAddress = Integer.valueOf(args[0]);
-		}
-		if(args.length > 2){
-			ID = Integer.valueOf(args[1]);
-		}
+	public void run(Integer serverAddress, Integer ID){
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(serverAddress));
 			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
@@ -80,20 +68,39 @@ public class LightClient implements Lights{
 			e.printStackTrace(System.err);
 			System.exit(1);
 		}
+		lightID = ID;
 		System.out.println(ID);
-		
-		LightClient Light = new LightClient();
-		Light.serverRunning.run(ID);
-		while(true){
-			String input = "";
-			Scanner s = new Scanner(System.in);
-			input = s.next();
-			s.close();
-			if (input =="exit"){
-				Light.serverRunning.stop();
-				return;
-			}
-		}
+		serverRunning.start();
 		
 	}
+
+	public void stop(){
+		serverRunning.interrupt();
+	}
+	
+	public static void main(String[] args){
+		int serverAddress = 6789;
+		int ID = 7891;
+		if(args.length > 1){
+			serverAddress = Integer.valueOf(args[0]);
+		}
+		if(args.length > 2){
+			ID = Integer.valueOf(args[1]);
+		}
+		LightClient thisLight = new LightClient();
+		thisLight.run(serverAddress, ID);
+		while(true){
+			int input = 0;
+			try{
+				input = System.in.read();
+			} catch(Exception e){
+				
+			}
+			if (input =='e'){ 
+				thisLight.stop();
+				break;
+			}
+		}
+	}
 }
+
