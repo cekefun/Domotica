@@ -25,6 +25,18 @@
 		"LeaveHouse":{
 			"request":[{"name":"username","type":"string"}],
 			"response":"null"
+		},
+		"GetFridges":{
+			"request":[],
+			"response":{"type":"array","items":"int"}
+		},
+		"ConnectUserToFridge":{
+			"request":[{"name" : "username", "type":"int"},{"name":"fridgeID", "type":"int"}],
+			"response":"null"
+		},
+		"FridgeIsEmpty":{
+			"request":[{"name":"fridgeID", "type":"int"}],
+			"response":"null"
 		}
 	}	
 }
