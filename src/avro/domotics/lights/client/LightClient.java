@@ -18,16 +18,19 @@ import avro.domotics.proto.server.DomServer;
 public class LightClient implements Lights{
 	private boolean state;
 	private Server server = null;
-	private Thread serverRunning = new Thread(new ServerThread());
 	private Integer lightID;
+	private Thread serverRunning = null;
 	
 	private class ServerThread implements Runnable {
-		public void run(){
-			this.run(lightID);
+		Integer ID;
+		LightClient ptr;
+		public ServerThread(Integer aboveID, LightClient above){
+			ID = aboveID;
+			ptr = above;
 		}
-		public void run(Integer ID){
+		public void run(){
 			try{
-				server = new SaslSocketServer(new SpecificResponder(Lights.class, new LightClient()),new InetSocketAddress(ID));
+				server = new SaslSocketServer(new SpecificResponder(Lights.class, ptr),new InetSocketAddress(ID));
 			} catch(IOException e){
 				System.err.println("[error] Failed to start server");
 				e.printStackTrace(System.err);
@@ -38,6 +41,10 @@ public class LightClient implements Lights{
 				server.join();
 			} catch(InterruptedException e){}
 		}
+	}
+	
+	public LightClient(){
+		state = false;
 	}
 	
 	@Override
@@ -69,7 +76,8 @@ public class LightClient implements Lights{
 			System.exit(1);
 		}
 		lightID = ID;
-		System.out.println(ID);
+		System.out.println("You have ID: "+Integer.toString(ID));
+		serverRunning = new Thread(new ServerThread(lightID,this));
 		serverRunning.start();
 		
 	}
@@ -101,6 +109,11 @@ public class LightClient implements Lights{
 				break;
 			}
 		}
+		
+	}
+
+	@Override
+	public boolean IsAlive() throws AvroRemoteException {
+		return true;
 	}
 }
-
