@@ -13,9 +13,6 @@ import avro.domotics.proto.lights.Lights;
 import avro.domotics.proto.server.DomServer;
 import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.proto.user.User;
-import avro.domotics.smartFridge.SmartFridge;
-import avro.domotics.exceptions.ConnectException;
-import avro.domotics.exceptions.ExistException;
 
 import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
@@ -27,7 +24,7 @@ import java.util.Vector;
 
 public class DomoticsServer implements DomServer{
 	HashMap<String,Set<Integer> > clients = new HashMap<String,Set<Integer> >();
-	HashMap<String,SimpleEntry<Integer,Boolean>> users = new HashMap<String,SimpleEntry<Integer,Boolean> >();
+	HashMap<Integer,SimpleEntry<CharSequence,Boolean>> users = new HashMap<Integer,SimpleEntry<CharSequence,Boolean> >();
 	
 	public static void main(String[] args){
 		
@@ -121,14 +118,17 @@ public class DomoticsServer implements DomServer{
 	
 	@Override
 	public int ConnectUser(CharSequence username) throws AvroRemoteException {
-		if (users.containsKey(username)){
-			users.get(username).setValue(true);
-			return users.get(username).getKey();
+		if (users.containsValue(new SimpleEntry<CharSequence,Boolean>(username,false)) || users.containsValue(new SimpleEntry<CharSequence,Boolean>(username,true))){
+			for (Integer ID :users.keySet()){
+				if(users.get(ID).getKey() == username){
+					users.get(ID).setValue(true);
+					return ID;
+				}
+			}
 		}
 		int ID = getFreeID();
-		String name = username.toString();
-		SimpleEntry<Integer,Boolean> tuple = new SimpleEntry<Integer,Boolean>(ID,true);
-		users.put(name, tuple);
+		SimpleEntry<CharSequence,Boolean> tuple = new SimpleEntry<CharSequence,Boolean>(username,true);
+		users.put(ID, tuple);
 		if(clients.get("users") == null){
 			Set<Integer> values = new HashSet<Integer>();
 			clients.put("users", values);
@@ -140,7 +140,7 @@ public class DomoticsServer implements DomServer{
 	@Override
 	public boolean Switch(int lightID) throws AvroRemoteException {
 		if (clients.get("lights")==null || !clients.get("lights").contains(lightID)){
-			throw new ExistException("light",lightID);
+			throw new AvroRemoteException("Exist");
 		}
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(lightID));
@@ -148,7 +148,7 @@ public class DomoticsServer implements DomServer{
 			proxy.LightSwitch();
 			client.close();
 		} catch(IOException e){
-			throw new ConnectException(lightID);
+			throw new AvroRemoteException("Connect");
 		}
 		return true;
 	}
@@ -190,10 +190,42 @@ public class DomoticsServer implements DomServer{
 		}
 		return result;
 	}
+	
+	@Override
+	public Map<CharSequence, Boolean> GetServers() throws AvroRemoteException {
+		Map<CharSequence, Boolean> result = new HashMap<CharSequence, Boolean>();
+		for(Integer ID: clients.get("server")){
+			boolean connected = true;
+			try{
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ID));
+				DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+				proxy.IsAlive();
+				client.close();
+			}
+			catch(Exception e){
+				connected = false;
+			}
+			result.put(ID.toString(), connected);
+		}
+		return result;
+	}
+
+	@Override
+	public Map<CharSequence, Boolean> GetUsers() throws AvroRemoteException {
+		Map<CharSequence, Boolean> result = new HashMap<CharSequence, Boolean>();
+		for(SimpleEntry<CharSequence,Boolean> value: users.values()){
+			result.put(value.getKey(), value.getValue());
+			
+		}
+		return result;
+	}
 
 	@Override
 	public Map<CharSequence, Boolean> GetLights() throws AvroRemoteException {
 		Map<CharSequence, Boolean> result = new HashMap<CharSequence, Boolean>();
+		if(clients.get("lights") == null){
+			return result;
+		}
 		for(Integer ID: clients.get("lights")){
 			boolean on;
 			try{
@@ -212,43 +244,51 @@ public class DomoticsServer implements DomServer{
 
 	@Override
 	public Void LeaveHouse(CharSequence username) throws AvroRemoteException {
-		users.get(username).setValue(false);
-		return null;
-	}
-	
-	@Override
-	public Void ConnectUserToFridge(int userID, int fridgeID) throws AvroRemoteException {
-		//Vector<String> result = new Vector<String>();
-		for(Integer ID: clients.get("fridges")){
-			if(ID == fridgeID){
-				try{
-					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ID));
-					fridge proxy = (fridge) SpecificRequestor.getClient(fridge.class, client);
-					proxy.IsAlive();
-					//result = proxy.getContents();
-					client.close();
-				}
-				catch(IOException e){
-					continue;
-				}
+		for(Integer ID : users.keySet()){
+			if (users.get(ID).getKey() == username) {
+				users.get(ID).setValue(false);
 			}
 		}
 		return null;
 	}
 	
 	@Override
-	public List<Integer> GetFridges() throws AvroRemoteException {
-		// TODO Auto-generated method stub
-		List<Integer> result = new Vector<Integer>();
+	public boolean ConnectUserToFridge(int userID, int fridgeID) throws AvroRemoteException {
+		//Vector<String> result = new Vector<String>();
+		if(clients.get("fridges") == null){
+			return false;
+		}
+		if(!clients.get("fridges").contains(fridgeID)){
+			return false;
+		}
+		boolean success = false;
+		try{
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(fridgeID));
+			fridge proxy = (fridge) SpecificRequestor.getClient(fridge.class, client);
+			success = proxy.OpenFridge(userID);
+			//result = proxy.getContents();
+			client.close();
+		}
+		catch(Exception e){
+			
+		}
+		return success;
+	}
+	
+	@Override
+	public Map<CharSequence, List<CharSequence>> GetFridges() throws AvroRemoteException {
+		Map<CharSequence, List<CharSequence>>  result = new HashMap<CharSequence, List<CharSequence> >() ;
+		if(clients.get("fridges") == null){
+			return result;
+		}
 		for(Integer ID: clients.get("fridges")){
 
 			try{
 				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ID));
 				fridge proxy = (fridge) SpecificRequestor.getClient(fridge.class, client);
-				proxy.IsAlive();
-				//result = proxy.getContents();
+				List<CharSequence> Contents = proxy.GetContents();
 				client.close();
-				result.add(ID);
+				result.put(ID.toString(), Contents);
 			}
 			catch(IOException e){
 				continue;
@@ -268,6 +308,5 @@ public class DomoticsServer implements DomServer{
 	public boolean IsAlive() throws AvroRemoteException {
 		return true;
 	}
-
 	
 }

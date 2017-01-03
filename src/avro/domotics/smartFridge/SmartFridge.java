@@ -3,6 +3,7 @@ package avro.domotics.smartFridge;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Vector;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketTransceiver;
@@ -20,7 +21,7 @@ public class SmartFridge implements fridge {
 	private Server server = null;
 	private Integer ServerID = 6789;
 	private Integer SelfID = 6789;
-	private List<CharSequence> contents;
+	private List<CharSequence> contents = new Vector<CharSequence>();
 	private boolean Open = false;
 	private Integer CurrentuserID = null;
 	private Thread serverThread = null;
@@ -62,8 +63,9 @@ public class SmartFridge implements fridge {
 	
 		return allContents;
 	}
-	// TODO Something
-	public Boolean OpenFridge(int UserID){
+	
+	@Override
+	public boolean OpenFridge(int UserID){
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
 		//Vector<String> allContents = this.contents;
 		if(this.Open == false){
@@ -116,6 +118,7 @@ public class SmartFridge implements fridge {
 	}
 	
 	//TODO something
+	@Override
 	public Void CloseFridge(int UserID){
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
 		//Vector<String> allContents = this.contents;
@@ -180,7 +183,7 @@ public class SmartFridge implements fridge {
 	}
 	@Override
 	public boolean IsAlive() throws AvroRemoteException {
-		System.out.println("HERE");
 		return true;
 	}
+
 }

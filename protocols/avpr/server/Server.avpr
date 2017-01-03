@@ -26,17 +26,25 @@
 			"request":[],
 			"response":{"type":"map","values": "boolean"}
 		},
+		"GetServers":{
+			"request":[],
+			"response":{"type": "map","values": "boolean"}
+		},
+		"GetUsers":{
+			"request":[],
+			"response":{"type":"map", "values": "boolean"}
+		},
 		"LeaveHouse":{
 			"request":[{"name":"username","type":"string"}],
 			"response":"null"
 		},
 		"GetFridges":{
 			"request":[],
-			"response":{"type":"array","items":"int"}
+			"response":{"type":"map","values":{"type":"array","items":"string"}}
 		},
 		"ConnectUserToFridge":{
 			"request":[{"name" : "username", "type":"int"},{"name":"fridgeID", "type":"int"}],
-			"response":"null"
+			"response":"boolean"
 		},
 		"FridgeIsEmpty":{
 			"request":[{"name":"fridgeID", "type":"int"}],
