@@ -326,7 +326,7 @@ public class UserClient  implements User{
 	}
 	
 	@Command
-	public Void AdditemToFridge(String item){
+	public Void AddItemToFridge(String item){
 		if (server == null){
 			System.out.println("You are not connected");
 			return null;

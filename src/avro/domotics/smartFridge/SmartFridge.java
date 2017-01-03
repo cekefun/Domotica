@@ -94,30 +94,26 @@ public class SmartFridge implements fridge {
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
 		//Vector<String> allContents = this.contents;
 		if(this.CurrentuserID == UserID){
-			for(int i = 0;  i < this.contents.size(); i++){
-				if(item == this.contents.get(i)){
-					this.contents.remove(i);
-						if(this.contents.isEmpty()){
-							//send message to controller
-							try{
-								Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-								DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
-								proxy.FridgeIsEmpty(SelfID);
-								client.close();
-							} catch(IOException e){
-								System.err.println("Error connecting to server");
-								e.printStackTrace(System.err);
-								System.exit(1);
-							}
-						}
-						return null;
+			if(contents.contains(item)){
+				contents.remove(item);
+				if(this.contents.isEmpty()){
+					//send message to controller
+					try{
+						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
+						DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+						proxy.FridgeIsEmpty(SelfID);
+						client.close();
+					} catch(IOException e){
+						System.err.println("Error connecting to server");
+						e.printStackTrace(System.err);
+						System.exit(1);
+					}
 				}
 			}
 		}
 		return null;
 	}
 	
-	//TODO something
 	@Override
 	public Void CloseFridge(int UserID){
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
