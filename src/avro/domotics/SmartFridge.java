@@ -1,64 +1,49 @@
-package avro.domotics.smartfridge;
+package avro.domotics.smartFridge;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import org.apache.avro.AvroRemoteException;
-import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.SaslSocketTransceiver;
+import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
-import asg.cliche.Command;
-import asg.cliche.ShellFactory;
-import avro.domotics.lights.client.LightClient;
-import avro.domotics.proto.lights.Lights;
 import avro.domotics.proto.server.DomServer;
+import avro.domotics.proto.smartFridge.fridge;
+import avro.domotics.server.DomoticsServer;
+import avro.domotics.user.User;
+import avro.domotics.user.UserClient;
 
 
-public class SmartFridge {
-	protected Server server = null;
-	protected Integer ServerID = 6789;
-	protected Integer SelfID = 6789;
-	protected String Name = "Frosty";
-	protected Vector<String> contents;
-	protected boolean Open;
-	protected Integer CurrentuserID = null;
-	//protected RunServer serverThread = new RunServer();
+public class SmartFridge implements fridge {
+	private Server server = null;
+	private Integer ServerID = 6789;
+	private Integer SelfID = 6789;
+	private List<CharSequence> contents = new Vector<CharSequence>();
+	private boolean Open = false;
+	public Integer CurrentuserID = null;
+	private Thread serverThread = null;
+	private Thread Pinginguser = new Thread(new clientpinger(this));
 	
-	SmartFridge(Integer server, String name){
+	SmartFridge(Integer server){
 		server = ServerID;
-		Name = name;
 	}
 	
-	private static class NullOutputStream extends OutputStream {
-		public void write(int b){
-			return;
+	public class RunServer implements Runnable{
+		Integer ID;
+		SmartFridge ptr;
+		public RunServer(Integer aboveID, SmartFridge above){
+			ID = aboveID;
+			ptr = above;
 		}
-		public void write(byte[]b){
-			return;
-		}
-		public void write(byte[]b, int off, int len){
-			return;
-		}
-		
-		public NullOutputStream(){
-			
-		}
-	}
-	/*
-	public class RunServer implements Runnable{ 
 		public void run(){
 			try{
-				server = new SaslSocketServer(new SpecificResponder(Lights.class, new LightClient()),new InetSocketAddress(SelfID));
+				server = new SaslSocketServer(new SpecificResponder(fridge.class, ptr),new InetSocketAddress(ID));
 			} catch(IOException e){
 				System.err.println("[error] Failed to start server");
 				e.printStackTrace(System.err);
@@ -73,20 +58,65 @@ public class SmartFridge {
 		public void stop(){
 			server.close();
 		}
-	}*/
-	@Command
-	public Vector<String> getContents(){
-		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
-		Vector<String> allContents = this.contents;
+	}
+	public class clientpinger implements Runnable{
+		SmartFridge ptr;
+		boolean stop  = false;
+		int missescounter = 0;
+		long sleeper = 3000;
+		int missesallowed = 2;
+		
+		public clientpinger(SmartFridge owner){
+			ptr = owner;
+		}
+		
+		public void run(){
+			//ptr.CurrentuserID;
+			while(! stop){
+				missescounter++;
+				try{
+					
+				Thread.sleep(sleeper);
+				
+				}
+				
+				catch(InterruptedException e){}
+				try{
+					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ptr.CurrentuserID));
+					UserClient proxy = (UserClient) SpecificRequestor.getClient(UserClient.class, client);
+
+					if(proxy.IsAlive()){
+						missescounter--;
+					}
+					client.close();
+				}
+				catch(IOException e){}
+				if(missescounter >= missesallowed){
+					stop = true;
+					ptr.CloseFridge(ptr.CurrentuserID);
+					
+				}
+			}
+		}
+		
+	}
 	
+	@Override
+	public List<CharSequence> GetContents() throws AvroRemoteException{
+		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
+		DomoticsServer.log("Smartfridge list");
+		List<CharSequence> allContents = this.contents;
+		DomoticsServer.log("Smartfridge list returning " + allContents );
 		return allContents;
 	}
-	@Command
-	public Boolean OpenFridge(int UserID){
+	
+	@Override
+	public synchronized boolean OpenFridge(int UserID){
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
 		//Vector<String> allContents = this.contents;
 		if(this.Open == false){
 			this.Open = true;
+			this.Pinginguser.start();
 		}
 		else{
 			return false;
@@ -95,8 +125,9 @@ public class SmartFridge {
 		this.CurrentuserID = UserID;
 		return true;
 	}
-	@Command
-	public Void AddItem(int UserID, String item){
+	
+	@Override
+	public Void AddItem(int UserID, CharSequence item){
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
 		//Vector<String> allContents = this.contents;
 		if(this.CurrentuserID == UserID){
@@ -104,34 +135,33 @@ public class SmartFridge {
 		}
 		return null;
 	}
-	@Command
-	public Boolean RemoveItem(int UserID, String item){
+	
+	@Override
+	public Void RemoveItem(int UserID, CharSequence item){
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
 		//Vector<String> allContents = this.contents;
 		if(this.CurrentuserID == UserID){
-			for(int i = 0;  i < this.contents.size(); i++){
-				if(item == this.contents.get(i)){
-					this.contents.remove(i);
-						if(this.contents.isEmpty()){
-							//send message to controller
-							try{
-								Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-								DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
-								proxy.FridgeIsEmpty(SelfID);
-								client.close();
-							} catch(IOException e){
-								System.err.println("Error connecting to server");
-								e.printStackTrace(System.err);
-								System.exit(1);
-							}
-						}
-						return true;
+			if(contents.contains(item)){
+				contents.remove(item);
+				if(this.contents.isEmpty()){
+					//send message to controller
+					try{
+						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
+						DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+						proxy.FridgeIsEmpty(SelfID);
+						client.close();
+					} catch(IOException e){
+						System.err.println("Error connecting to server");
+						e.printStackTrace(System.err);
+						System.exit(1);
+					}
 				}
 			}
 		}
-		return false;
+		return null;
 	}
-	@Command
+	
+	@Override
 	public Void CloseFridge(int UserID){
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
 		//Vector<String> allContents = this.contents;
@@ -141,25 +171,62 @@ public class SmartFridge {
 		}
 		return null;
 	}
-
+	
+	public void start(){
+		try{
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
+			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			SelfID = proxy.ConnectFridge(SelfID);
+			client.close();
+		} catch(IOException e){
+			System.err.println("Error connecting to server");
+			e.printStackTrace(System.err);
+			System.exit(1);
+		}
+		System.out.println("You have ID: "+Integer.toString(SelfID));
+		serverThread = new Thread(new RunServer(SelfID,this));
+		serverThread.start();
+	}
+	
+	public void stop(){
+		serverThread.interrupt();
+	}
+	
 	public static void main(String[] args){
-		System.setErr(new PrintStream(new NullOutputStream()));
 		Integer ServerID = 6789;
-		String Name = "Frosty";
 
 		if (args.length>0){
 			ServerID = Integer.valueOf(args[0]);
 		}
-		if (args.length>1){
-			Name = args[1];
-		}
+
 		
-		SmartFridge fridge = new SmartFridge(ServerID,Name);
+		SmartFridge fridge = new SmartFridge(ServerID);
 		
-		try{
-			ShellFactory.createConsoleShell(fridge.Name, "Domotics User", fridge).commandLoop();
-		} catch(IOException e){
-			System.exit(1);
+		fridge.start();
+		
+		while(true){
+			int input = 0;
+			try{
+				input = System.in.read();
+			} catch(Exception e){
+				
+			}
+			if (input =='e'){ 
+				fridge.stop();
+				break;
+			}
 		}
 	}
+	
+
+	@Override
+	public boolean ConnectToClient(int ClientID) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	@Override
+	public boolean IsAlive() throws AvroRemoteException {
+		return true;
+	}
+
 }
