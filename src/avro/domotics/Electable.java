@@ -103,10 +103,11 @@ public abstract class Electable implements electable, Runnable {
 		int OwnID = this.getID();
 
 		int nextInChain = UPPERBOUND;
+		
 		int min = UPPERBOUND;
 		for(String key: clients.keySet()){
 			for(Integer ID: clients.get(key)){
-				if(key == "fridges" || key == "users"){
+				if(key.equalsIgnoreCase("fridges") || key.equalsIgnoreCase("users")){
 					if(ID < nextInChain && ID > OwnID){
 						nextInChain = ID;
 						
@@ -143,10 +144,15 @@ public abstract class Electable implements electable, Runnable {
 				proxy.election(LastID);
 			}
 
-
+		}
+		catch(AvroRemoteException e){
+			if(e.getCause().getClass() == InterruptedException.class)
+				log("interrupted election");
+			else 
+				log("unexpected remote exception " + e);
 		}
 		catch(IOException e){
-			log("THROWN ELECTION: " + e);
+			log("exception during election: " + e);
 		}
 		finally{
 			try {
@@ -211,25 +217,25 @@ public abstract class Electable implements electable, Runnable {
 			for(String key: clients.keySet()){
 				for(Integer ID: clients.get(key)){
 					try{
-						log("ID: " + ID);
+						log("syncing " + key + " " + ID);
 						//client = new SaslSocketTransceiver(new InetSocketAddress(ID));
 						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ID));
 						switch (key) {
 						case "users":
-							log("pre request");
+							//log("pre request");
 							User proxyU = (User) SpecificRequestor.getClient(User.class, client);
-							log("pre client sync");
+							//log("pre client sync");
 							proxyU._sync(clientlist, userlist);
-							log("After clientsync clients: "+clientlist + " users: "+userlist);
+							//log("After clientsync clients: "+clientlist + " users: "+userlist);
 							
 							break;
 						case "fridges":
-							log("pre request");
+							//log("pre request");
 							fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
-							log("pre fridge sync");
+							//log("pre fridge sync");
 							proxyF._sync(clientlist, userlist);
 							//proxyF._sync(new HashMap<CharSequence,List<Integer> >(), new HashMap<CharSequence,Map<CharSequence,Boolean>>());
-							log("After fridgesync clients: "+clientlist + " users: "+userlist);
+							//log("After fridgesync clients: "+clientlist + " users: "+userlist);
 							break;
 							
 						}
@@ -240,7 +246,7 @@ public abstract class Electable implements electable, Runnable {
 					}
 				}
 			}
-			log("synched");
+			//log("synched");
 		}
 		
 	}
@@ -276,6 +282,7 @@ public abstract class Electable implements electable, Runnable {
 						try{
 							
 							client = new SaslSocketTransceiver(new InetSocketAddress(ID));
+							log("pinging " + key + " " + ID);
 							switch (key) {
 							case "server":
 								DomServer proxyS = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
@@ -293,7 +300,7 @@ public abstract class Electable implements electable, Runnable {
 								fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
 								runningsmooth = proxyF.IsAlive();
 								//proxyF._sync(new HashMap<CharSequence,List<Integer> >(), new HashMap<CharSequence,Map<CharSequence,Boolean>>());
-								log("Pingsfridge");
+								//log("Pingsfridge");
 								break;
 							/*case "Thermostat":
 								Thermostat proxyT = (Thermostat) SpecificRequestor.getClient(Thermostat.class,client);

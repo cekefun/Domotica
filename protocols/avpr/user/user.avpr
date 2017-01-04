@@ -9,6 +9,14 @@
 		"_sync":{
 			"request":[{"name":"Clients", "type":{"type":"map", "values": {"type":"array","items":"int"}}}, {"name":"Users", "type": {"type":"map", "values":{"type":"map", "values": "boolean"}}}],
 			"response":"null"
+		},
+		"election":{
+			"request":[{"name":"OwnID","type":"int"}],
+			"response":"boolean"
+		},
+		"elected":{
+			"request":[{"name":"OwnID","type":"int"}, {"name":"NextID","type":"int"}],
+			"response":"boolean"
 		}
 	}
 }
