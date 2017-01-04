@@ -13,7 +13,6 @@ import avro.domotics.proto.lights.Lights;
 import avro.domotics.proto.server.DomServer;
 import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.proto.user.User;
-import avro.domotics.smartFridge.SmartFridge.clientpinger;
 
 import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;

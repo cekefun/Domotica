@@ -9,6 +9,10 @@
 		"GetLightState":{
 			"request":[],
 			"response":"boolean"
+		},
+		"IsAlive":{
+			"request":[],
+			"response":"boolean"
 		}
 	}
 }

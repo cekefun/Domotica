@@ -3,6 +3,8 @@ package avro.domotics.smartFridge;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 
 import org.apache.avro.AvroRemoteException;
@@ -29,11 +31,20 @@ public class SmartFridge implements fridge {
 	public Integer CurrentuserID = null;
 	private Thread serverThread = null;
 	private Thread Pinginguser = new Thread(new clientpinger(this));
+	private Timer deadservertimer = new Timer();
+	public Election election = new Election();
+	public long countdown = 10000;
 	
 	SmartFridge(Integer server){
 		server = ServerID;
 	}
-	
+	public class Election extends TimerTask{
+
+		public void run(){
+			//robert chang yey
+			DomoticsServer.log("Server dead");
+		}
+	}
 	public class RunServer implements Runnable{
 		Integer ID;
 		SmartFridge ptr;
@@ -201,7 +212,7 @@ public class SmartFridge implements fridge {
 
 		
 		SmartFridge fridge = new SmartFridge(ServerID);
-		
+		fridge.deadservertimer.schedule(fridge.election, fridge.countdown);
 		fridge.start();
 		
 		while(true){
@@ -226,6 +237,9 @@ public class SmartFridge implements fridge {
 	}
 	@Override
 	public boolean IsAlive() throws AvroRemoteException {
+		election.cancel();
+		election = new Election();
+		deadservertimer.schedule(election, countdown);
 		return true;
 	}
 
