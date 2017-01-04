@@ -7,11 +7,6 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.SaslSocketTransceiver;
@@ -21,11 +16,9 @@ import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
 import avro.domotics.Electable;
-import avro.domotics.proto.server.DomServer;
+import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.proto.user.User;
-import avro.domotics.server.DomoticsServer;
-import avro.domotics.smartFridge.SmartFridge.Election;
 
 import org.apache.avro.AvroRemoteException;
 import asg.cliche.Command;
@@ -39,9 +32,6 @@ public class UserClient extends Electable implements User{
 	private String Name = "Foo";
 	private Integer OpenFridgeID = null;
 	private Thread serverThread = null;
-	private Timer deadservertimer = new Timer();
-	public Election election = new Election();
-	public long countdown = 10000;
 	//Map<String,Set<Integer> > clients = null;
 	//Map<Integer,SimpleEntry<CharSequence,Boolean>> users = null;
 	
@@ -49,14 +39,7 @@ public class UserClient extends Electable implements User{
 		server = ServerID;
 		Name = name;
 	}
-	public class Election extends TimerTask{
 
-		public void run(){
-			//robert chang yey
-			election(0);
-			DomoticsServer.log("Server dead");
-		}
-	}
 	/*public void _Sync(Map<String,Set<Integer> > _clients,Map<Integer,SimpleEntry<CharSequence,Boolean>> _users ){
 		clients = new HashMap<String,Set<Integer> >(_clients);// _clients.clone();
 		users = new HashMap<Integer,SimpleEntry<CharSequence,Boolean>>(_users);//_users.clone();
@@ -108,11 +91,16 @@ public class UserClient extends Electable implements User{
 		}
 	}
 	
+	public void stop(){
+		log("stop");
+		server.close();
+	}
+	
 	@Command
 	public void EnterHouse(){
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			SelfID = proxy.ConnectUser(Name);
 			client.close();
 		} catch(Exception e){
@@ -129,7 +117,7 @@ public class UserClient extends Electable implements User{
 	public void LeaveHouse(){
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			proxy.LeaveHouse(Name);
 			client.close();
 		} catch (IOException e){
@@ -144,13 +132,13 @@ public class UserClient extends Electable implements User{
 	}
 	
 	@Command
-	public String Switch(int ID){
+	public String SwitchLight(int ID){
 		if (server == null){
 			return "You are not connected";
 		}
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			proxy.Switch(ID);
 			client.close();
 		} catch(AvroRemoteException e){
@@ -215,7 +203,7 @@ public class UserClient extends Electable implements User{
 		Map<CharSequence, Boolean> Servers = new HashMap<CharSequence,Boolean>();
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			Servers = proxy.GetServers();
 			client.close();
 		} catch(IOException e){
@@ -245,7 +233,7 @@ public class UserClient extends Electable implements User{
 		Map<CharSequence, Boolean> Users = new HashMap<CharSequence,Boolean>();
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			Users = proxy.GetUsers();
 			client.close();
 		} catch(IOException e){
@@ -274,7 +262,7 @@ public class UserClient extends Electable implements User{
 		Map<CharSequence, Boolean> lights = new HashMap<CharSequence,Boolean>();
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			lights = proxy.GetLights();
 			client.close();
 		} catch(IOException e){
@@ -306,12 +294,12 @@ public class UserClient extends Electable implements User{
 			System.out.println("You are not connected");
 			return null;
 		}
-		DomoticsServer.log("Getting fridges");
+		log("Getting fridges");
 		String result = "";
 		Map<CharSequence, List<CharSequence>> fridges = new HashMap<CharSequence, List<CharSequence>>();// = new List<Integer>();
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			fridges = proxy.GetFridges();
 			client.close();
 		} catch(IOException e){
@@ -343,7 +331,7 @@ public class UserClient extends Electable implements User{
 		boolean success = false;
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			success = proxy.ConnectUserToFridge(SelfID, fridgeID);
 			client.close();
 			this.OpenFridgeID = fridgeID;
@@ -437,7 +425,7 @@ public class UserClient extends Electable implements User{
 		}
 		
 		UserClient myUser = new UserClient(ServerID,Name);
-		myUser.deadservertimer.schedule(myUser.election, myUser.countdown);
+		myUser.standby();
 		
 		try{
 			ShellFactory.createConsoleShell(myUser.Name, "Domotics User", myUser).commandLoop();
@@ -446,11 +434,4 @@ public class UserClient extends Electable implements User{
 		}
 	}
 
-	@Override
-	public boolean IsAlive() throws AvroRemoteException {
-		election.cancel();
-		election = new Election();
-		deadservertimer.schedule(election, countdown);
-		return true;
-	}
 }

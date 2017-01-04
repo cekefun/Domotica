@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
 
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.Vector;
-
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketTransceiver;
@@ -18,9 +15,8 @@ import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
 import avro.domotics.Electable;
-import avro.domotics.proto.server.DomServer;
+import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.smartFridge.fridge;
-import avro.domotics.server.DomoticsServer;
 import avro.domotics.user.UserClient;
 
 
@@ -33,9 +29,7 @@ public class SmartFridge extends Electable implements fridge {
 	public Integer CurrentuserID = null;
 	private Thread serverThread = null;
 	private Thread Pinginguser = new Thread(new clientpinger(this));
-	private Timer deadservertimer = new Timer();
-	public Election election = new Election();
-	public long countdown = 10000;
+
 	//Map<String,Set<Integer> > clients = null;
 	//Map<Integer,SimpleEntry<CharSequence,Boolean>> users = null;
 	
@@ -43,14 +37,7 @@ public class SmartFridge extends Electable implements fridge {
 	SmartFridge(Integer server){
 		server = ServerID;
 	}
-	public class Election extends TimerTask{
 
-		public void run(){
-			//robert chang yey
-			election(0);
-			DomoticsServer.log("Server dead");
-		}
-	}
 	/*public void _Sync(Map<String,Set<Integer> > _clients,Map<Integer,SimpleEntry<CharSequence,Boolean>> _users ){
 		clients = new HashMap<String,Set<Integer> >(_clients);// _clients.clone();
 		users = new HashMap<Integer,SimpleEntry<CharSequence,Boolean>>(_users);//_users.clone();
@@ -86,6 +73,7 @@ public class SmartFridge extends Electable implements fridge {
 			server.close();
 		}
 	}
+	
 	public class clientpinger implements Runnable{
 		SmartFridge ptr;
 		boolean stop  = false;
@@ -131,9 +119,9 @@ public class SmartFridge extends Electable implements fridge {
 	@Override
 	public List<CharSequence> GetContents() throws AvroRemoteException{
 		//Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
-		DomoticsServer.log("Smartfridge list");
+		log("Smartfridge list");
 		List<CharSequence> allContents = this.contents;
-		DomoticsServer.log("Smartfridge list returning " + allContents );
+		log("Smartfridge list returning " + allContents );
 		return allContents;
 	}
 	
@@ -174,7 +162,7 @@ public class SmartFridge extends Electable implements fridge {
 					//send message to controller
 					try{
 						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-						DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+						electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 						proxy.FridgeIsEmpty(SelfID);
 						client.close();
 					} catch(IOException e){
@@ -202,7 +190,7 @@ public class SmartFridge extends Electable implements fridge {
 	public void start(){
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			SelfID = proxy.ConnectFridge(SelfID);
 			client.close();
 		} catch(IOException e){
@@ -216,7 +204,8 @@ public class SmartFridge extends Electable implements fridge {
 	}
 	
 	public void stop(){
-		serverThread.interrupt();
+		log("stop");
+		server.close();
 	}
 	
 	public static void main(String[] args){
@@ -228,8 +217,9 @@ public class SmartFridge extends Electable implements fridge {
 
 		
 		SmartFridge fridge = new SmartFridge(ServerID);
-		fridge.deadservertimer.schedule(fridge.election, fridge.countdown);
 		fridge.start();
+		
+		fridge.standby();
 		
 		while(true){
 			int input = 0;
@@ -251,14 +241,15 @@ public class SmartFridge extends Electable implements fridge {
 		// TODO Auto-generated method stub
 		return false;
 	}
+	/*
 	@Override
 	public boolean IsAlive() throws AvroRemoteException {
-		election.cancel();
-		election = new Election();
-		deadservertimer.schedule(election, countdown);
-		DomoticsServer.log("Test electable lists: clients " + clients +  " users: " + users );
+		electiontimertask.cancel();
+		electiontimertask = new StartElection();
+		deadservertimer.schedule(electiontimertask, countdown);
+		//log("Test electable lists: clients " + clients +  " users: " + users );
 		return true;
-	}
+	}*/
 
 	/*@Override
 	public Void _sync(Map<String, Set<Integer>> clients, Map<Integer, SimpleEntry<CharSequence, Boolean>> users)

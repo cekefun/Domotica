@@ -11,6 +11,8 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 import org.apache.avro.ipc.SaslSocketTransceiver;
 import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
+
+import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.lights.Lights;
 import avro.domotics.proto.server.DomServer;
 
@@ -67,7 +69,7 @@ public class LightClient implements Lights{
 	public void run(Integer serverAddress, Integer ID){
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(serverAddress));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			ID = proxy.ConnectLight(ID);
 			client.close();
 		} catch(IOException e){
