@@ -1,0 +1,10 @@
+{
+	"namespace":"avro.domotics.proto.user",
+	"protocol":"User",
+	"messages":{
+		"IsAlive":{
+			"request":[],
+			"response":"boolean"
+		}
+	}
+}

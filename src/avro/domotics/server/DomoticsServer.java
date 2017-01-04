@@ -146,7 +146,7 @@ public class DomoticsServer implements DomServer{
 						}
 					}
 				}
-				log("Pinging called");
+				log("Pinging called: successes: " + successes + " fails: " + fails);
 			}
 		}
 	}

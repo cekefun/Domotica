@@ -17,6 +17,18 @@
 		"ConnectToClient":{
 			"request":[{"name":"ClientID","type":"int"}],
 			"response":"boolean"
+		},
+		"IsAlive":{
+			"request":[],
+			"response":"boolean"
+		},
+		"OpenFridge":{
+			"request":[{"name":"ClientID","type":"int"}],
+			"response":"boolean"
+		},
+		"CloseFridge":{
+			"request":[{"name":"ClientID","type":"int"}],
+			"response":"null"
 		}
 	}	
 }

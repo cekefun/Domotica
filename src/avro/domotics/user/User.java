@@ -7,7 +7,6 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.SaslSocketTransceiver;
@@ -19,8 +18,6 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 import avro.domotics.lights.client.LightClient;
 import avro.domotics.proto.lights.Lights;
 import avro.domotics.proto.server.DomServer;
-import avro.domotics.smartfridge.SmartFridge;
-
 import org.apache.avro.AvroRemoteException;
 import asg.cliche.Command;
 import asg.cliche.ShellFactory;
@@ -30,7 +27,6 @@ public class User {
 	protected Server server = null;
 	protected Integer ServerID = 6789;
 	protected Integer SelfID = 6789;
-	protected Integer OpenFridgeID = null;
 	protected String Name = "Foo";
 	protected RunServer serverThread = new RunServer();
 	
@@ -169,85 +165,6 @@ public class User {
 			}
 		}
 		return result;
-	}
-	public List<Integer> getFridges(){
-		List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
-		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
-			fridges = proxy.GetFridges();
-			client.close();
-		} catch(IOException e){
-			System.err.println("Error connecting to server");
-			e.printStackTrace(System.err);
-			System.exit(1);
-		}
-		return fridges;
-	}
-	
-	public Void openFridge(int fridgeID){
-		//List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
-		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(fridgeID));
-			SmartFridge proxy = (SmartFridge) SpecificRequestor.getClient(SmartFridge.class, client);
-			proxy.OpenFridge(SelfID);
-			client.close();
-			this.OpenFridgeID = fridgeID;
-		} catch(IOException e){
-			System.err.println("Error connecting to Fridge");
-			e.printStackTrace(System.err);
-			System.exit(1);
-		}
-		return null;
-	}
-	public Void AdditemToFridge(String item){
-		//List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
-		if(this.OpenFridgeID != null){
-			try{
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID));
-				SmartFridge proxy = (SmartFridge) SpecificRequestor.getClient(SmartFridge.class, client);
-				proxy.AddItem(SelfID, item);
-				client.close();
-			} catch(IOException e){
-				System.err.println("Error connecting to Fridge");
-				e.printStackTrace(System.err);
-				System.exit(1);
-			}
-		}
-		return null;
-	}
-	public Void RemoveItemFromFridge(String item){
-		//List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
-		if(this.OpenFridgeID != null){
-			try{
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID));
-				SmartFridge proxy = (SmartFridge) SpecificRequestor.getClient(SmartFridge.class, client);
-				proxy.RemoveItem(SelfID, item);
-				client.close();
-			} catch(IOException e){
-				System.err.println("Error connecting to Fridge");
-				e.printStackTrace(System.err);
-				System.exit(1);
-			}
-		}
-		return null;
-	}
-	public Void CloseFridge(){
-		//List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
-		if(this.OpenFridgeID != null){
-			try{
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID));
-				SmartFridge proxy = (SmartFridge) SpecificRequestor.getClient(SmartFridge.class, client);
-				proxy.CloseFridge(SelfID);
-				client.close();
-				this.OpenFridgeID = null;
-			} catch(IOException e){
-				System.err.println("Error connecting to Fridge");
-				e.printStackTrace(System.err);
-				System.exit(1);
-			}
-		}
-		return null;
 	}
 	
 	@Command
