@@ -30,6 +30,7 @@ public class User {
 	protected String Name = "Foo";
 	protected RunServer serverThread = new RunServer();
 	
+	
 	User(Integer server, String name){
 		server = ServerID;
 		Name = name;

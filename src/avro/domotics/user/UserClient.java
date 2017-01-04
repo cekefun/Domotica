@@ -7,6 +7,11 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.SaslSocketTransceiver;
@@ -15,28 +20,47 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
+import avro.domotics.Electable;
 import avro.domotics.proto.server.DomServer;
 import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.proto.user.User;
 import avro.domotics.server.DomoticsServer;
+import avro.domotics.smartFridge.SmartFridge.Election;
 
 import org.apache.avro.AvroRemoteException;
 import asg.cliche.Command;
 import asg.cliche.ShellFactory;
 
 
-public class UserClient  implements User{
+public class UserClient extends Electable implements User{
 	private Server server = null;
 	private Integer ServerID = 6789;
 	private Integer SelfID = 6789;
 	private String Name = "Foo";
 	private Integer OpenFridgeID = null;
 	private Thread serverThread = null;
+	private Timer deadservertimer = new Timer();
+	public Election election = new Election();
+	public long countdown = 10000;
+	//Map<String,Set<Integer> > clients = null;
+	//Map<Integer,SimpleEntry<CharSequence,Boolean>> users = null;
 	
 	UserClient(Integer server, String name){
 		server = ServerID;
 		Name = name;
 	}
+	public class Election extends TimerTask{
+
+		public void run(){
+			//robert chang yey
+			Chang_Roberts();
+			DomoticsServer.log("Server dead");
+		}
+	}
+	/*public void _Sync(Map<String,Set<Integer> > _clients,Map<Integer,SimpleEntry<CharSequence,Boolean>> _users ){
+		clients = new HashMap<String,Set<Integer> >(_clients);// _clients.clone();
+		users = new HashMap<Integer,SimpleEntry<CharSequence,Boolean>>(_users);//_users.clone();
+	}*/
 	
 	private static class NullOutputStream extends OutputStream {
 		public void write(int b){
@@ -407,6 +431,7 @@ public class UserClient  implements User{
 		}
 		
 		UserClient myUser = new UserClient(ServerID,Name);
+		myUser.deadservertimer.schedule(myUser.election, myUser.countdown);
 		
 		try{
 			ShellFactory.createConsoleShell(myUser.Name, "Domotics User", myUser).commandLoop();
@@ -417,6 +442,9 @@ public class UserClient  implements User{
 
 	@Override
 	public boolean IsAlive() throws AvroRemoteException {
+		election.cancel();
+		election = new Election();
+		deadservertimer.schedule(election, countdown);
 		return true;
 	}
 }
