@@ -3,14 +3,11 @@ package avro.domotics.smartFridge;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
+
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketTransceiver;
@@ -50,7 +47,7 @@ public class SmartFridge extends Electable implements fridge {
 
 		public void run(){
 			//robert chang yey
-			Chang_Roberts();
+			election(0);
 			DomoticsServer.log("Server dead");
 		}
 	}
@@ -58,7 +55,12 @@ public class SmartFridge extends Electable implements fridge {
 		clients = new HashMap<String,Set<Integer> >(_clients);// _clients.clone();
 		users = new HashMap<Integer,SimpleEntry<CharSequence,Boolean>>(_users);//_users.clone();
 	}*/
-	
+	public int getID(){
+		return SelfID;
+	}
+	public  String getName(){
+		return "SmartFridge";
+	}
 	public class RunServer implements Runnable{
 		Integer ID;
 		SmartFridge ptr;

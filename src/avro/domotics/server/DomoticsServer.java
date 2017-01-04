@@ -198,12 +198,17 @@ public class DomoticsServer implements DomServer{
 							missping.missedpings ++;
 							if(missping.missedpings >= threshold){
 								PingMap.remove(ID);
-								if (key != "server"){
-									clients.remove(key);
+								clients.get(key).remove(ID);
+								if(clients.get(key).size() == 0){
+									if (key != "server"){
+										clients.remove(key);
+									}
 								}
-								try{LeaveHouse(key);}
-								catch(IOException woops){
-									log("User not in users,... huh?");
+								if(key == "users"){
+									try{LeaveHouse(key);}
+									catch(IOException woops){
+										log("User not in users,... huh?");
+									}
 								}
 								
 							}
@@ -236,10 +241,9 @@ public class DomoticsServer implements DomServer{
 		}
 		server.start();
 		PingingEveryone.start();
-		//MAKE TIMER HERE
 		java.util.Date now = new java.util.Date();
 		syncTimer.schedule(sync, now , countdown);
-		//______________________________________________________________________________________________________________________________________\\
+		
 		try{
 			server.join();
 		} catch(InterruptedException e){}

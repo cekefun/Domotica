@@ -53,7 +53,7 @@ public class UserClient extends Electable implements User{
 
 		public void run(){
 			//robert chang yey
-			Chang_Roberts();
+			election(0);
 			DomoticsServer.log("Server dead");
 		}
 	}
@@ -61,6 +61,12 @@ public class UserClient extends Electable implements User{
 		clients = new HashMap<String,Set<Integer> >(_clients);// _clients.clone();
 		users = new HashMap<Integer,SimpleEntry<CharSequence,Boolean>>(_users);//_users.clone();
 	}*/
+	public int getID(){
+		return SelfID;
+	}
+	public String getName(){
+		return "UserClient";
+	}
 	
 	private static class NullOutputStream extends OutputStream {
 		public void write(int b){
