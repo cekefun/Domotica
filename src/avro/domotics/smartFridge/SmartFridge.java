@@ -24,7 +24,6 @@ import avro.domotics.Electable;
 import avro.domotics.proto.server.DomServer;
 import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.server.DomoticsServer;
-import avro.domotics.user.User;
 import avro.domotics.user.UserClient;
 
 
@@ -42,6 +41,7 @@ public class SmartFridge extends Electable implements fridge {
 	public long countdown = 10000;
 	//Map<String,Set<Integer> > clients = null;
 	//Map<Integer,SimpleEntry<CharSequence,Boolean>> users = null;
+	
 	
 	SmartFridge(Integer server){
 		server = ServerID;
@@ -254,7 +254,15 @@ public class SmartFridge extends Electable implements fridge {
 		election.cancel();
 		election = new Election();
 		deadservertimer.schedule(election, countdown);
+		DomoticsServer.log("Test electable lists: clients " + clients +  " users: " + users );
 		return true;
 	}
+
+	/*@Override
+	public Void _sync(Map<String, Set<Integer>> clients, Map<Integer, SimpleEntry<CharSequence, Boolean>> users)
+			throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}*/
 
 }

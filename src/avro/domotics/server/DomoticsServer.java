@@ -1,7 +1,9 @@
 package avro.domotics.server;
 
 import java.io.IOException ;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.Server;
@@ -15,11 +17,14 @@ import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.proto.user.User;
 
 import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,14 +34,74 @@ public class DomoticsServer implements DomServer{
 	Map<Integer,SimpleEntry<CharSequence,Boolean>> users = new ConcurrentHashMap<Integer,SimpleEntry<CharSequence,Boolean> >();
 	private Thread PingingEveryone = new Thread(new pinger(this));
 	HashMap<Integer, pinginfo> PingMap = new HashMap<Integer, pinginfo>();
+	private Timer syncTimer = new Timer();
+	public Synchronizer sync = new Synchronizer();
+	public final long countdown = 10000;
+	public static Object lock = new Object();
 	public static void log(String s){
 		System.err.println(s);
 	}
 	
 	public class pinginfo{
 		public int missedpings = 0;
-		}
+	}
 	
+	public class Synchronizer extends TimerTask{
+
+		public void run(){
+			log("preparing for syncing");
+			Map<CharSequence,List<Integer>> clientlist = new HashMap<>();
+			Map<CharSequence,Map<CharSequence,Boolean>> userlist = new HashMap<>();
+			for(String key: clients.keySet()){
+				clientlist.put((CharSequence)key, new ArrayList<>(clients.get(key)) );
+			}
+			for(int key: users.keySet()){
+				
+				CharSequence newkey = users.get(key).getKey();
+				Boolean bool = users.get(key).getValue();
+				HashMap<CharSequence,Boolean> tempmap = new HashMap<CharSequence,Boolean>();
+				tempmap.put(newkey, bool);
+				userlist.put(Integer.toString(key), tempmap);
+			}
+			
+			
+			log("syncing");
+			for(String key: clients.keySet()){
+				for(Integer ID: clients.get(key)){
+					try{
+						log("ID: " + ID);
+						//client = new SaslSocketTransceiver(new InetSocketAddress(ID));
+						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ID));
+						switch (key) {
+						case "users":
+							log("pre request");
+							User proxyU = (User) SpecificRequestor.getClient(User.class, client);
+							log("pre client sync");
+							proxyU._sync(clientlist, userlist);
+							log("After clientsync clients: "+clientlist + " users: "+userlist);
+							
+							break;
+						case "fridges":
+							log("pre request");
+							fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
+							log("pre fridge sync");
+							proxyF._sync(clientlist, userlist);
+							//proxyF._sync(new HashMap<CharSequence,List<Integer> >(), new HashMap<CharSequence,Map<CharSequence,Boolean>>());
+							log("After fridgesync clients: "+clientlist + " users: "+userlist);
+							break;
+							
+						}
+						client.close();
+					}
+					catch(IOException e){
+						log("syncing IOException: "+e);
+					}
+				}
+			}
+			log("synched");
+		}
+		
+	}
 	public static void main(String[] args){
 		
 		
@@ -99,6 +164,7 @@ public class DomoticsServer implements DomServer{
 							case "fridges":
 								fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
 								runningsmooth = proxyF.IsAlive();
+								//proxyF._sync(new HashMap<CharSequence,List<Integer> >(), new HashMap<CharSequence,Map<CharSequence,Boolean>>());
 								log("Pingsfridge");
 								break;
 							/*case "Thermostat":
@@ -170,6 +236,10 @@ public class DomoticsServer implements DomServer{
 		}
 		server.start();
 		PingingEveryone.start();
+		//MAKE TIMER HERE
+		java.util.Date now = new java.util.Date();
+		syncTimer.schedule(sync, now , countdown);
+		//______________________________________________________________________________________________________________________________________\\
 		try{
 			server.join();
 		} catch(InterruptedException e){}

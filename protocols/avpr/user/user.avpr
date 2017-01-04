@@ -5,6 +5,10 @@
 		"IsAlive":{
 			"request":[],
 			"response":"boolean"
+		},
+		"_sync":{
+			"request":[{"name":"Clients", "type":{"type":"map", "values": {"type":"array","items":"int"}}}, {"name":"Users", "type": {"type":"map", "values":{"type":"map", "values": "boolean"}}}],
+			"response":"null"
 		}
 	}
 }
