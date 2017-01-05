@@ -34,6 +34,7 @@ public abstract class Electable implements electable, Runnable {
 	private Map<String,Set<Integer> > clients = new ConcurrentHashMap<String,Set<Integer> >();
 	private Map<Integer,SimpleEntry<CharSequence,Boolean>> users = new ConcurrentHashMap<Integer,SimpleEntry<CharSequence,Boolean>>();
 	private Map<CharSequence, CharSequence> addressList = new ConcurrentHashMap<CharSequence,CharSequence>();
+	private List<Integer> SavedLights = new Vector<Integer>();
 	private int UPPERBOUND = 64*1024 + 1;
 	protected NetAddress SelfID = null;
 	private Thread PingingEveryone = new Thread(new pinger(this));
@@ -68,8 +69,8 @@ public abstract class Electable implements electable, Runnable {
 
 	}
 	
-	public Void _sync(Map<CharSequence,List<Integer> > _clients,	Map<CharSequence,Map<CharSequence,Boolean>> _users, Map<CharSequence, CharSequence> _addresses){
-		log("in sync; clients: "+ _clients + " users: " + _users);
+	public Void _sync(Map<CharSequence,List<Integer> > _clients,	Map<CharSequence,Map<CharSequence,Boolean>> _users, Map<CharSequence, CharSequence> _addresses,List<Integer> _lights){
+		log("in sync; clients: "+ _clients + " users: " + _users+" addresses:"+_addresses+" lights:"+_lights);
 		HashMap<CharSequence,List<Integer>> clientlist = new HashMap<>(_clients);
 		//log("Preusersync");
 		HashMap<CharSequence,Map<CharSequence,Boolean>> userlist = new HashMap<>(_users);
@@ -81,6 +82,7 @@ public abstract class Electable implements electable, Runnable {
 			clients.put(key.toString(), new HashSet<>(clientlist.get(key)) );
 			
 		}
+		
 		for(CharSequence key: userlist.keySet()){
 			
 			int newkey = Integer.parseInt(key.toString()); //(users.get(key).getKey().toString());
@@ -93,6 +95,7 @@ public abstract class Electable implements electable, Runnable {
 			users.put(newkey, tempmap);
 		}
 		addressList.putAll(_addresses);
+		SavedLights = new Vector<Integer>(_lights);
 		return null;
 	}
 	@Override
@@ -196,6 +199,14 @@ public abstract class Electable implements electable, Runnable {
 	public class Synchronizer extends TimerTask{
 
 		public void run(){
+			if(clients.get("users") == null){
+				Set<Integer> values = new HashSet<Integer>();
+				clients.put("users", values);
+			}
+			if(clients.get("fridges") == null){
+				Set<Integer> values = new HashSet<Integer>();
+				clients.put("fridges", values);
+			}
 			log("preparing for syncing");
 			Map<CharSequence,List<Integer>> clientlist = new HashMap<>();
 			Map<CharSequence,Map<CharSequence,Boolean>> userlist = new HashMap<>();
@@ -211,8 +222,8 @@ public abstract class Electable implements electable, Runnable {
 				userlist.put(Integer.toString(key), tempmap);
 			}
 			
-			
 			log("syncing");
+			
 			for(String key: clients.keySet()){
 				for(Integer ID: clients.get(key)){
 					try{
@@ -228,7 +239,7 @@ public abstract class Electable implements electable, Runnable {
 							//log("pre request");
 							User proxyU = (User) SpecificRequestor.getClient(User.class, client);
 							//log("pre client sync");
-							proxyU._sync(clientlist, userlist,addressList);
+							proxyU._sync(clientlist, userlist,addressList,SavedLights);
 							//log("After clientsync clients: "+clientlist + " users: "+userlist);
 							
 							break;
@@ -236,7 +247,7 @@ public abstract class Electable implements electable, Runnable {
 							//log("pre request");
 							fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
 							//log("pre fridge sync");
-							proxyF._sync(clientlist, userlist,addressList);
+							proxyF._sync(clientlist, userlist,addressList,SavedLights);
 							//proxyF._sync(new HashMap<CharSequence,List<Integer> >(), new HashMap<CharSequence,Map<CharSequence,Boolean>>());
 							//log("After fridgesync clients: "+clientlist + " users: "+userlist);
 							break;
@@ -246,6 +257,7 @@ public abstract class Electable implements electable, Runnable {
 					}
 					catch(IOException e){
 						log("syncing IOException: "+e);
+					} catch(Exception e){
 					}
 				}
 			}
@@ -340,13 +352,14 @@ public abstract class Electable implements electable, Runnable {
 							if(missping.missedpings >= threshold){
 								PingMap.remove(ID);
 								clients.get(key).remove(ID);
+								SavedLights.remove(ID);
 								if(clients.get(key).size() == 0){
 									if (key != "server"){
 										clients.remove(key);
 									}
 								}
 								if(key == "users"){
-									try{LeaveHouse(key);}
+									try{LeaveHouse(ID);}
 									catch(IOException woops){
 										log("User not in users,... huh?");
 									}
@@ -361,11 +374,23 @@ public abstract class Electable implements electable, Runnable {
 			}
 		}
 	}
-	public void run(){
+	public void run(){		
 		NetAddress ID = SelfID;
 		if (clients.get("server") == null){
 			Set<Integer> values = new HashSet<Integer>();
 			clients.put("server", values);
+		}
+		if (clients.get("users") == null){
+			Set<Integer> values = new HashSet<Integer>();
+			clients.put("users", values);
+		}
+		if (clients.get("lights") == null){
+			Set<Integer> values = new HashSet<Integer>();
+			clients.put("lights", values);
+		}
+		if (clients.get("fridges") == null){
+			Set<Integer> values = new HashSet<Integer>();
+			clients.put("fridges", values);
 		}
 		if(!clients.get("server").isEmpty() ){
 			System.err.println("[error] Failed to start server");
@@ -472,9 +497,10 @@ public abstract class Electable implements electable, Runnable {
 		clients.get("users").add(ID);
 		addressList.put(toAdd.getPort().toString(), toAdd.getIPStr());
 		NotifyEnter(username);
+		undoSavings();
 		return ID;
 	}
-
+	
 	@Override
 	public boolean Switch(int lightID) throws AvroRemoteException {
 		if (clients.get("lights")==null || !clients.get("lights").contains(lightID)){
@@ -599,20 +625,26 @@ public abstract class Electable implements electable, Runnable {
 	}
 
 	@Override
-	public Void LeaveHouse(CharSequence username) throws AvroRemoteException {
-		Integer UserID = 0;
-		for(Integer ID : users.keySet()){
-			if (users.get(ID).getKey() == username) {
-				users.get(ID).setValue(false);
-				NotifyLeave(username);
-				UserID = ID;
+	public Void LeaveHouse(int userID) throws AvroRemoteException {
+		users.get(userID).setValue(false);
+		
+		
+		boolean oneIn = false;
+		for(SimpleEntry<CharSequence, Boolean> entry: users.values()){
+			if (entry.getValue()){
+				System.out.println("zet op true");
+				oneIn = true;
 			}
 		}
-		if(UserID  == 0){
-			return null;
+		
+		if(!oneIn){
+			startSaving();
 		}
-		clients.get("users").remove(UserID);
-		addressList.remove(UserID.toString());
+		NotifyLeave(users.get(userID).getKey());
+
+		
+		clients.get("users").remove(userID);
+		addressList.remove(String.valueOf(userID));
 		return null;
 	}
 	
@@ -743,6 +775,49 @@ public abstract class Electable implements electable, Runnable {
 			}
 			
 		}
+	}
+	
+	private void startSaving(){
+		log("start Saving");
+		for(Integer light: clients.get("lights") ){
+			NetAddress IP = new NetAddress(light,String.valueOf(addressList.get(light.toString())));
+			if(IP.getIP() == null){
+				continue;
+			}
+			try{
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
+				Lights proxy = (Lights) SpecificRequestor.getClient(Lights.class, client);
+				if(proxy.GetLightState()){
+					proxy.LightSwitch();
+					SavedLights.add(light);
+				}
+			} catch (Exception e){
+				continue;
+			}
+		}
+		System.out.println("saved:"+SavedLights.toString());
+	}
+	
+	private void undoSavings() {
+		List<Integer> toTurnOn = new Vector<Integer>(SavedLights);
+		SavedLights.clear();
+		System.out.println(toTurnOn.toString());
+		for(Integer light: toTurnOn){
+			NetAddress IP = new NetAddress(light,String.valueOf(addressList.get(light.toString())));
+			if(IP.getIP() == null){
+				System.out.println("HERE1");
+				continue;
+			}
+			try{
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
+				Lights proxy = (Lights) SpecificRequestor.getClient(Lights.class, client);
+				proxy.LightSwitch();
+			} catch (Exception e){
+				System.out.println("HERE2");
+				continue;
+			}
+		}
+		
 	}
 	
 	//__________________________________________________________SmartFridge inherit_______________________________________________________________\\

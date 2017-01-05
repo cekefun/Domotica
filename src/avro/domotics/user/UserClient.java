@@ -130,7 +130,7 @@ public class UserClient extends Electable implements User{
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
 			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
-			proxy.LeaveHouse(Name);
+			proxy.LeaveHouse(SelfID.getPort());
 			client.close();
 		} catch (IOException e){
 			//Cannot connect to server so things should happen

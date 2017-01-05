@@ -3,7 +3,7 @@
 	"protocol":"User",
 	"messages":{
 		"_sync":{
-			"request":[{"name":"Clients", "type":{"type":"map", "values": {"type":"array","items":"int"}}}, {"name":"Users", "type": {"type":"map", "values":{"type":"map", "values":"boolean"}}}, {"name":"addresses","type":{"type":"map","values":"string"}}],
+			"request":[{"name":"Clients", "type":{"type":"map", "values": {"type":"array","items":"int"}}}, {"name":"Users", "type": {"type":"map", "values":{"type":"map", "values":"boolean"}}}, {"name":"addresses","type":{"type":"map","values":"string"}},{"name":"savedLights","type":{"type":"array","items":"int"}}],
 			"response":"null"
 		},
 		"election":{
