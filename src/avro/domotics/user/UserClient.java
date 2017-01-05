@@ -15,26 +15,43 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
-import avro.domotics.proto.server.DomServer;
+import avro.domotics.Electable;
+import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.proto.user.User;
+import avro.domotics.util.NetAddress;
 
 import org.apache.avro.AvroRemoteException;
 import asg.cliche.Command;
 import asg.cliche.ShellFactory;
 
 
-public class UserClient  implements User{
+public class UserClient extends Electable implements User{
 	private Server server = null;
-	private Integer ServerID = 6789;
-	private Integer SelfID = 6789;
+	private NetAddress ServerID = null;
 	private String Name = "Foo";
-	private Integer OpenFridgeID = null;
+	private NetAddress OpenFridgeID = null;
 	private Thread serverThread = null;
+	private RunServer serverRun = null;
+
+	//Map<String,Set<Integer> > clients = null;
+	//Map<Integer,SimpleEntry<CharSequence,Boolean>> users = null;
 	
-	UserClient(Integer server, String name){
-		server = ServerID;
+	UserClient(NetAddress server, String name, NetAddress myAddr){
+		ServerID = server;
 		Name = name;
+		SelfID = myAddr;
+	}
+
+	/*public void _Sync(Map<String,Set<Integer> > _clients,Map<Integer,SimpleEntry<CharSequence,Boolean>> _users ){
+		clients = new HashMap<String,Set<Integer> >(_clients);// _clients.clone();
+		users = new HashMap<Integer,SimpleEntry<CharSequence,Boolean>>(_users);//_users.clone();
+	}*/
+	public int getID(){
+		return SelfID.getPort();
+	}
+	public String getName(){
+		return "UserClient";
 	}
 	
 	private static class NullOutputStream extends OutputStream {
@@ -53,6 +70,11 @@ public class UserClient  implements User{
 		}
 	}
 	
+	public void stop(){
+		log("stop");
+		server.close();
+	}
+	
 	public class RunServer implements Runnable{
 		UserClient ptr = null;
 		public RunServer(UserClient above){
@@ -60,7 +82,7 @@ public class UserClient  implements User{
 		}
 		public void run(){
 			try{
-				server = new SaslSocketServer(new SpecificResponder(User.class, ptr),new InetSocketAddress(SelfID));
+				server = new SaslSocketServer(new SpecificResponder(User.class, ptr),new InetSocketAddress(SelfID.getIP(),SelfID.getPort()));
 			} catch(IOException e){
 				System.err.println("[error] Failed to start server");
 				e.printStackTrace(System.err);
@@ -79,26 +101,35 @@ public class UserClient  implements User{
 	
 	@Command
 	public void EnterHouse(){
+		if(serverRun != null){
+			System.out.println("Already connected");
+			return;
+		}
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
-			SelfID = proxy.ConnectUser(Name);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
+			SelfID.setPort(proxy.ConnectUser(Name,SelfID.getIPStr()));
 			client.close();
 		} catch(Exception e){
 			System.out.println("Could not connect to the server");
 			System.err.println("Error connecting to server");
 			e.printStackTrace(System.err);
 			return;
-		} 
-		serverThread = new Thread(new RunServer(this));
+		}
+		serverRun= new RunServer(this);
+		serverThread = new Thread(serverRun);
 		serverThread.start();	
 	}
 	
 	@Command
 	public void LeaveHouse(){
+		if(server == null){
+			System.out.println("You are not connected");
+			return;
+		}
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			proxy.LeaveHouse(Name);
 			client.close();
 		} catch (IOException e){
@@ -106,20 +137,24 @@ public class UserClient  implements User{
 		} catch (Exception e){
 			System.out.println(e.getMessage());
 		}
+		serverRun.stop();
 		serverThread.interrupt();
+		server.close();
+		serverRun = null;
 		serverThread = null;
 		server = null;
 		
 	}
+
 	
 	@Command
-	public String Switch(int ID){
+	public String SwitchLight(int ID){
 		if (server == null){
 			return "You are not connected";
 		}
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			proxy.Switch(ID);
 			client.close();
 		} catch(AvroRemoteException e){
@@ -152,26 +187,6 @@ public class UserClient  implements User{
 		result += getLights();
 		result += getFridges();
 		
-		
-		/*
-		Map<CharSequence, List<Integer>> AllClients = new HashMap<CharSequence, List<Integer>>();
-		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
-			AllClients = proxy.GetClients();
-			client.close();
-		} catch(IOException e){
-			System.out.println("Could not connect to the server");
-			System.err.println("Error connecting to server");
-			e.printStackTrace(System.err);
-		}
-		String result = "";
-		for (CharSequence Key: AllClients.keySet()){
-			for (Integer value: AllClients.get(Key)){
-				result += Key.toString() + '\t' + value.toString() + '\n';
-			}
-		}
-		*/
 		return result;
 	}
 	
@@ -183,8 +198,8 @@ public class UserClient  implements User{
 		String result = "";
 		Map<CharSequence, Boolean> Servers = new HashMap<CharSequence,Boolean>();
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			Servers = proxy.GetServers();
 			client.close();
 		} catch(IOException e){
@@ -213,8 +228,8 @@ public class UserClient  implements User{
 		String result = "";
 		Map<CharSequence, Boolean> Users = new HashMap<CharSequence,Boolean>();
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			Users = proxy.GetUsers();
 			client.close();
 		} catch(IOException e){
@@ -242,8 +257,8 @@ public class UserClient  implements User{
 		}
 		Map<CharSequence, Boolean> lights = new HashMap<CharSequence,Boolean>();
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			lights = proxy.GetLights();
 			client.close();
 		} catch(IOException e){
@@ -275,11 +290,12 @@ public class UserClient  implements User{
 			System.out.println("You are not connected");
 			return null;
 		}
+		log("Getting fridges");
 		String result = "";
 		Map<CharSequence, List<CharSequence>> fridges = new HashMap<CharSequence, List<CharSequence>>();// = new List<Integer>();
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			fridges = proxy.GetFridges();
 			client.close();
 		} catch(IOException e){
@@ -308,20 +324,20 @@ public class UserClient  implements User{
 			return null;
 		}
 		//List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
-		boolean success = false;
+		CharSequence success = "";
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
-			success = proxy.ConnectUserToFridge(SelfID, fridgeID);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
+			success = proxy.ConnectUserToFridge(SelfID.getPort(), fridgeID);
 			client.close();
-			this.OpenFridgeID = fridgeID;
 		} catch(IOException e){
 			System.err.println("Error connecting to Fridge");
 			e.printStackTrace(System.err);
 		}
-		if (!success){
+		if (success==""){
 			System.out.println("Could not open the fridge");
 		}
+		this.OpenFridgeID = new NetAddress(fridgeID,String.valueOf(success));
 		return null;
 	}
 	
@@ -334,9 +350,9 @@ public class UserClient  implements User{
 		//List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
 		if(this.OpenFridgeID != null){
 			try{
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID));
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID.getIP(),OpenFridgeID.getPort()));
 				fridge proxy = (fridge) SpecificRequestor.getClient(fridge.class, client);
-				proxy.AddItem(SelfID, item);
+				proxy.AddItem(SelfID.getPort(), item);
 				client.close();
 			} catch(IOException e){
 				System.err.println("Error connecting to Fridge");
@@ -356,9 +372,9 @@ public class UserClient  implements User{
 		//List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
 		if(this.OpenFridgeID != null){
 			try{
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID));
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID.getIP(),OpenFridgeID.getPort()));
 				fridge proxy = (fridge) SpecificRequestor.getClient(fridge.class, client);
-				proxy.RemoveItem(SelfID, item);
+				proxy.RemoveItem(SelfID.getPort(), item);
 				client.close();
 			} catch(IOException e){
 				System.err.println("Error connecting to Fridge");
@@ -378,9 +394,9 @@ public class UserClient  implements User{
 		//List<Integer> fridges = new Vector<Integer>();// = new List<Integer>();
 		if(this.OpenFridgeID != null){
 			try{
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID));
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.OpenFridgeID.getIP(),OpenFridgeID.getPort()));
 				fridge proxy = (fridge) SpecificRequestor.getClient(fridge.class, client);
-				proxy.CloseFridge(SelfID);
+				proxy.CloseFridge(SelfID.getPort());
 				client.close();
 				this.OpenFridgeID = null;
 			} catch(IOException e){
@@ -393,18 +409,39 @@ public class UserClient  implements User{
 	}
 	
 	public static void main(String[] args){
-		System.setErr(new PrintStream(new NullOutputStream()));
+		//System.setErr(new PrintStream(new NullOutputStream()));
 		Integer ServerID = 6789;
+		String ServerIP = "127.0.0.1";
 		String Name = "Bob";
+		String UserIP = "127.0.0.1";
 
 		if (args.length>0){
 			ServerID = Integer.valueOf(args[0]);
 		}
 		if (args.length>1){
-			Name = args[1];
+			ServerIP = args[1];
+		}
+		if (args.length>2){
+			Name = args[2];
+		}
+		if(args.length>3){
+			UserIP = args[3];
 		}
 		
-		UserClient myUser = new UserClient(ServerID,Name);
+		NetAddress ServerAddr = new NetAddress(ServerID,ServerIP);
+		NetAddress UserAddr = new NetAddress(0,UserIP);
+		
+		if(ServerAddr.getIP() == null){
+			System.out.println("Invalid Server IP");
+			System.exit(-1);
+		}
+		if(UserAddr.getIP() == null){
+			System.out.println("Invalid User IP");
+			System.exit(-1);
+		}
+		
+		UserClient myUser = new UserClient(ServerAddr,Name,UserAddr);
+		myUser.standby();
 		
 		try{
 			ShellFactory.createConsoleShell(myUser.Name, "Domotics User", myUser).commandLoop();
@@ -414,7 +451,24 @@ public class UserClient  implements User{
 	}
 
 	@Override
-	public boolean IsAlive() throws AvroRemoteException {
-		return true;
+	public Void UserEnters(CharSequence username) throws AvroRemoteException {
+		System.out.println(username+" has entered the building.");
+		System.out.print(Name+"> ");
+		return null;
 	}
+
+	@Override
+	public Void UserLeaves(CharSequence username) throws AvroRemoteException {
+		System.out.println(username+" has left the building.");
+		System.out.print(Name+"> ");
+		return null;
+	}
+
+	@Override
+	public Void EmptyFridge(int fridgeID) throws AvroRemoteException {
+		System.out.println("Fridge "+String.valueOf(fridgeID)+" is empty.");
+		System.out.print(Name+"> ");
+		return null;
+	}
+
 }

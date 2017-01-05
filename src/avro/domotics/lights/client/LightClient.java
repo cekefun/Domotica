@@ -11,26 +11,28 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 import org.apache.avro.ipc.SaslSocketTransceiver;
 import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
+
+import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.lights.Lights;
-import avro.domotics.proto.server.DomServer;
+import avro.domotics.util.NetAddress;
 
 
 public class LightClient implements Lights{
 	private boolean state;
 	private Server server = null;
-	private Integer lightID;
+	private NetAddress lightID;
 	private Thread serverRunning = null;
 	
 	private class ServerThread implements Runnable {
-		Integer ID;
+		NetAddress ID;
 		LightClient ptr;
-		public ServerThread(Integer aboveID, LightClient above){
+		public ServerThread(NetAddress aboveID, LightClient above){
 			ID = aboveID;
 			ptr = above;
 		}
 		public void run(){
 			try{
-				server = new SaslSocketServer(new SpecificResponder(Lights.class, ptr),new InetSocketAddress(ID));
+				server = new SaslSocketServer(new SpecificResponder(Lights.class, ptr),new InetSocketAddress(ID.getIP(),ID.getPort()));
 			} catch(IOException e){
 				System.err.println("[error] Failed to start server");
 				e.printStackTrace(System.err);
@@ -64,11 +66,11 @@ public class LightClient implements Lights{
 		return state;
 	}
 	
-	public void run(Integer serverAddress, Integer ID){
+	public void run(NetAddress serverAddress, NetAddress ID){
 		try{
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(serverAddress));
-			DomServer proxy = (DomServer) SpecificRequestor.getClient(DomServer.class, client);
-			ID = proxy.ConnectLight(ID);
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(serverAddress.getIP(),serverAddress.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
+			ID.setPort(proxy.ConnectLight(ID.getPort(),ID.getIPStr()));
 			client.close();
 		} catch(IOException e){
 			System.err.println("Error connecting to server");
@@ -76,7 +78,7 @@ public class LightClient implements Lights{
 			System.exit(1);
 		}
 		lightID = ID;
-		System.out.println("You have ID: "+Integer.toString(ID));
+		System.out.println("You have ID: "+Integer.toString(ID.getPort()));
 		serverRunning = new Thread(new ServerThread(lightID,this));
 		serverRunning.start();
 		
@@ -88,15 +90,27 @@ public class LightClient implements Lights{
 	
 	public static void main(String[] args){
 		int serverAddress = 6789;
+		String serverIP = "127.0.0.1";
 		int ID = 7891;
-		if(args.length > 1){
+		String thisIP = "127.0.0.1";
+		if(args.length > 0){
 			serverAddress = Integer.valueOf(args[0]);
 		}
-		if(args.length > 2){
-			ID = Integer.valueOf(args[1]);
+		if(args.length > 1){
+			serverIP = args[1];
 		}
+		if(args.length > 2){
+			ID = Integer.valueOf(args[2]);
+		}
+		if(args.length > 3){
+			thisIP = args[3];
+		}
+		
+		NetAddress ServerAddr = new NetAddress(serverAddress,serverIP);
+		NetAddress thisAddr = new NetAddress(ID,thisIP);
+		
 		LightClient thisLight = new LightClient();
-		thisLight.run(serverAddress, ID);
+		thisLight.run(ServerAddr, thisAddr);
 		while(true){
 			int input = 0;
 			try{

@@ -2,54 +2,6 @@
 	"namespace":"avro.domotics.proto.server",
 	"protocol":"DomServer",
 	"messages":{
-		"ConnectUser":{
-			"request":[{"name":"username","type":"string"}],
-			"response":"int"
-		},
-		"ConnectLight":{
-			"request":[{"name":"LightID","type":"int"}],
-			"response":"int"
-		},
-		"ConnectFridge":{
-			"request":[{"name":"FridgeID","type":"int"}],
-			"response":"int"
-		},
-		"Switch":{
-			"request":[{"name":"lightID","type":"int"}],
-			"response":"boolean"
-		},
-		"GetClients":{
-			"request":[],
-			"response": {"type": "map", "values": {"type":"array","items":"int"}}
-		},
-		"GetLights":{
-			"request":[],
-			"response":{"type":"map","values": "boolean"}
-		},
-		"GetServers":{
-			"request":[],
-			"response":{"type": "map","values": "boolean"}
-		},
-		"GetUsers":{
-			"request":[],
-			"response":{"type":"map", "values": "boolean"}
-		},
-		"LeaveHouse":{
-			"request":[{"name":"username","type":"string"}],
-			"response":"null"
-		},
-		"GetFridges":{
-			"request":[],
-			"response":{"type":"map","values":{"type":"array","items":"string"}}
-		},
-		"ConnectUserToFridge":{
-			"request":[{"name" : "username", "type":"int"},{"name":"fridgeID", "type":"int"}],
-			"response":"boolean"
-		},
-		"FridgeIsEmpty":{
-			"request":[{"name":"fridgeID", "type":"int"}],
-			"response":"null"
-		},
 		"IsAlive":{
 			"request":[],
 			"response":"boolean"
