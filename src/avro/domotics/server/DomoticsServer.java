@@ -20,6 +20,7 @@ public class DomoticsServer extends Electable implements DomServer{
 	}
 	
 	public static void main(String[] args){
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
 		DomoticsServer myServer = new DomoticsServer();
 		Integer ID = 6789;
 		if ( args.length > 0 ){
@@ -35,6 +36,10 @@ public class DomoticsServer extends Electable implements DomServer{
 			System.exit(-1);
 		}
 		myServer.run();
+	}
+	@Override
+	public boolean IsAlive(){
+		return true;
 	}
 	
 

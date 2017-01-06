@@ -54,6 +54,12 @@ public class UserClient extends Electable implements User{
 		return "UserClient";
 	}
 	
+	public void start(){
+		serverRun= new RunServer(this);
+		serverThread = new Thread(serverRun);
+		serverThread.start();
+	}
+	
 	private static class NullOutputStream extends OutputStream {
 		public void write(int b){
 			return;
@@ -82,6 +88,7 @@ public class UserClient extends Electable implements User{
 		}
 		public void run(){
 			try{
+				log("listening");
 				server = new SaslSocketServer(new SpecificResponder(User.class, ptr),new InetSocketAddress(SelfID.getIP(),SelfID.getPort()));
 			} catch(IOException e){
 				System.err.println("[error] Failed to start server");
@@ -116,9 +123,9 @@ public class UserClient extends Electable implements User{
 			e.printStackTrace(System.err);
 			return;
 		}
-		serverRun= new RunServer(this);
-		serverThread = new Thread(serverRun);
-		serverThread.start();	
+
+		this.start();
+		this.standby();
 	}
 	
 	@Command
@@ -143,6 +150,7 @@ public class UserClient extends Electable implements User{
 		serverRun = null;
 		serverThread = null;
 		server = null;
+		this.standDown();
 		
 	}
 
@@ -409,6 +417,7 @@ public class UserClient extends Electable implements User{
 	}
 	
 	public static void main(String[] args){
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
 		//System.setErr(new PrintStream(new NullOutputStream()));
 		Integer ServerID = 6789;
 		String ServerIP = "127.0.0.1";
@@ -441,7 +450,7 @@ public class UserClient extends Electable implements User{
 		}
 		
 		UserClient myUser = new UserClient(ServerAddr,Name,UserAddr);
-		myUser.standby();
+
 		
 		try{
 			ShellFactory.createConsoleShell(myUser.Name, "Domotics User", myUser).commandLoop();

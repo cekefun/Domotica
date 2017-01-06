@@ -37,7 +37,8 @@ public abstract class Electable implements electable, Runnable {
 	private List<Integer> SavedLights = new Vector<Integer>();
 	private int UPPERBOUND = 64*1024 + 1;
 	protected NetAddress SelfID = null;
-	private Thread PingingEveryone = new Thread(new pinger(this));
+	private pinger pingingobject = new pinger(this);
+	private Thread PingingEveryone = new Thread(pingingobject);
 	HashMap<Integer, pinginfo> PingMap = new HashMap<Integer, pinginfo>();
 	private Timer syncTimer = new Timer();
 	private Synchronizer sync = new Synchronizer();
@@ -45,14 +46,55 @@ public abstract class Electable implements electable, Runnable {
 	private Thread ServerThread = null;
 	private Timer deadservertimer = new Timer();
 	private StartElection electiontimertask = new StartElection();
+	public Integer ServerID = 6789;
+	public String ServerIP = "127.0.0.1";
+	private Server server = null;
 	
 	public abstract int getID();
 	public abstract String getName();
 	
-	public void stop(){}
+	public void stopserver(){
+		log("stopping server");
+		pingingobject.stop();
+		server.close();
+		this.start();
+		this.standby();
+	}
+	public void stop(){
+		server.close();
+	}
+	
+	public void start(){}
+	
 	
 	public void log(String s){
 		System.err.println(this.getName() + " " + this.getID() + " says: " +s);
+	}
+	
+	public Map<CharSequence,List<Integer> > ConvertClients(boolean reput){
+		Map<CharSequence,List<Integer>> clientlist = new HashMap<>();
+		boolean reputmyself = false;
+		for(String key: clients.keySet()){
+			if(key.equalsIgnoreCase("server") && reput == true){
+				clients.get(key).remove(this.getID());
+				clients.get(key).add(this.ServerID);
+				
+			}
+			clientlist.put((CharSequence)key, new ArrayList<>(clients.get(key)) );
+		}
+		return clientlist;
+		
+	}
+	public Map<CharSequence,Map<CharSequence,Boolean>> ConvertUsers(boolean reput){
+		Map<CharSequence,Map<CharSequence,Boolean>> userlist = new HashMap<>();
+		for(int key: users.keySet()){
+			CharSequence newkey = users.get(key).getKey();
+			Boolean bool = users.get(key).getValue();
+			HashMap<CharSequence,Boolean> tempmap = new HashMap<CharSequence,Boolean>();
+			tempmap.put(newkey, bool);
+			userlist.put(Integer.toString(key), tempmap);
+		}
+		return userlist;
 	}
 	
 	public void SetElected(int _electedID){		
@@ -62,6 +104,16 @@ public abstract class Electable implements electable, Runnable {
 			stop();
 			ServerThread = new Thread(this);
 			ServerThread.start();
+			for(String key: clients.keySet()){
+				for(Integer ID: clients.get(key)){
+					if(ID == OwnID){
+						clients.get(key).remove(OwnID);
+						if(clients.get(key).isEmpty())
+							clients.remove(key);
+					}
+				}
+			
+			}
 		}
 		else{
 			log("TODO: stop server thread");
@@ -133,11 +185,15 @@ public abstract class Electable implements electable, Runnable {
 			return true;
 		}
 		log("election: LastID: " + OwnID + " NextInChain: " + nextInChain );
+		
 		Transceiver client = null;
 		try{
-			NetAddress IP = new NetAddress(nextInChain,String.valueOf(addressList.get(String.valueOf(nextInChain))));
+			CharSequence tempchain = Integer.toString(nextInChain);
+			log("addresslist: " + addressList.size() );
+			NetAddress IP = new NetAddress(nextInChain, (String)addressList.get( tempchain));
+			log("sending election to Ip: " + IP.getIP() + "," + IP.getPort());
 			client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
-			electable.Callback proxy = (electable.Callback) SpecificRequestor.getClient(electable.Callback.class, client);
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			if(OwnID > LastID){
 				proxy.election(OwnID);
 			}
@@ -268,13 +324,15 @@ public abstract class Electable implements electable, Runnable {
 	public class pinger implements Runnable{
 		Electable ptr;
 		int sleeper= 3000;
-		boolean _run = true;
+		public boolean _run = true;
 		int threshold = 3;
 		
 		public pinger(Electable electable){
 			ptr = electable;
 		}
-	
+		public void stop(){
+			_run = false;
+		}
 		public void run(){
 			while(_run){
 				try{
@@ -284,6 +342,7 @@ public abstract class Electable implements electable, Runnable {
 				}
 				
 				catch(InterruptedException e){}
+				pingserver();
 				int successes = 0;
 				int fails = 0;
 				for(String key: clients.keySet()){
@@ -399,8 +458,9 @@ public abstract class Electable implements electable, Runnable {
 		}
 		clients.get("server").add(Integer.valueOf(ID.getPort()));
 		addressList.put(SelfID.getPort().toString(), SelfID.getIPStr());
-		Server server = null;
+		this.server = null;
 		try{
+			log("listening for ekectable on " + ID.getIP() + " " + ID.getPort());
 			server = new SaslSocketServer(new SpecificResponder(electable.class, this),new InetSocketAddress(ID.getIP(),ID.getPort()));
 		} catch(IOException e){
 			System.err.println("[error] Failed to start server");
@@ -835,5 +895,27 @@ public abstract class Electable implements electable, Runnable {
 	public void standby(){
 		this.deadservertimer.schedule(this.electiontimertask, this.countdown);
 		log("Standby");
+	}
+	public void standDown(){
+		this.electiontimertask.cancel();
+		log("Standing down");
+	}
+	public void pingserver(){
+		if(!this.getName().equalsIgnoreCase("server")){
+			try{
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(this.ServerIP,this.ServerID));
+				electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
+				if(proxy.IsAlive()){
+					//resign being server, start being fridge
+					
+					proxy._sync(this.ConvertClients(true), this.ConvertUsers(true),this.addressList ,this.SavedLights);
+					this.stopserver();
+				}
+				client.close();
+			} catch (Exception e){
+				log("no server pingable");
+			}
+		}
+			
 	}
 }

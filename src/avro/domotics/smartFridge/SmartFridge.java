@@ -47,7 +47,7 @@ public class SmartFridge extends Electable implements fridge {
 		return SelfID.getPort();
 	}
 	public  String getName(){
-		return "SmartFridge";
+		return "fridges";
 	}
 	public class RunServer implements Runnable{
 		NetAddress ID;
@@ -58,6 +58,7 @@ public class SmartFridge extends Electable implements fridge {
 		}
 		public void run(){
 			try{
+				log("listening for fridge on: " + ID.getIP() + " " + ID.getPort());
 				server = new SaslSocketServer(new SpecificResponder(fridge.class, ptr),new InetSocketAddress(ID.getIP(),ID.getPort()));
 			} catch(IOException e){
 				System.err.println("[error] Failed to start server");
@@ -189,6 +190,7 @@ public class SmartFridge extends Electable implements fridge {
 	}
 	
 	public void start(){
+		log("connecting to: " + ServerID.getIP() +" " +ServerID.getPort() );
 		try{
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
 			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
@@ -196,8 +198,9 @@ public class SmartFridge extends Electable implements fridge {
 			client.close();
 		} catch(IOException e){
 			System.err.println("Error connecting to server");
-			e.printStackTrace(System.err);
-			System.exit(1);
+			/*e.printStackTrace(System.err);
+			System.exit(1);*/
+
 		}
 		System.out.println("You have ID: "+Integer.toString(SelfID.getPort()));
 		serverThread = new Thread(new RunServer(SelfID,this));
@@ -210,6 +213,7 @@ public class SmartFridge extends Electable implements fridge {
 	}
 	
 	public static void main(String[] args){
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
 		Integer ServerID = 6789;
 		String ServerIP = "127.0.0.1";
 		Integer FridgeID = 7777;

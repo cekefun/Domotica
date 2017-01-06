@@ -89,6 +89,7 @@ public class LightClient implements Lights{
 	}
 	
 	public static void main(String[] args){
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
 		int serverAddress = 6789;
 		String serverIP = "127.0.0.1";
 		int ID = 7891;
