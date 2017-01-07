@@ -468,6 +468,9 @@ public class UserClient extends ElectableClient implements User{
 
 	@Override
 	public Void UserLeaves(CharSequence username) throws AvroRemoteException {
+		if (username == Name){
+			return null;
+		}
 		System.out.println(username+" has left the building.");
 		System.out.print(Name+"> ");
 		return null;
