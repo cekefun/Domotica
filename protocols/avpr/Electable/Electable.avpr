@@ -67,7 +67,7 @@
 			"response":"null"
 		},
 		"IsAlive":{
-			"request":[],
+			"request":[{"name":"IPaddr","type":"string"},{"name":"ID","type":"int"}],
 			"response":"boolean"
 		},
 		"UpdateTemperature":{

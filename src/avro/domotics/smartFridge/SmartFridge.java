@@ -9,7 +9,6 @@ import java.util.Vector;
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketTransceiver;
 import org.apache.avro.ipc.SaslSocketServer;
-import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
@@ -22,7 +21,7 @@ import avro.domotics.util.NetAddress;
 
 
 public class SmartFridge extends ElectableClient implements fridge {
-	private Server server = null;
+	//private Server server = null;
 	private NetAddress ServerID = null;
 	private List<CharSequence> contents = new Vector<CharSequence>();
 	private boolean Open = false;
@@ -102,7 +101,7 @@ public class SmartFridge extends ElectableClient implements fridge {
 					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ptr.CurrentuserID.getIP(),ptr.CurrentuserID.getPort()));
 					UserClient proxy = (UserClient) SpecificRequestor.getClient(UserClient.class, client);
 
-					if(proxy.IsAlive()){
+					if(proxy.IsAlive(ServerIP,ServerID.getPort())){
 						missescounter--;
 					}
 					client.close();
@@ -206,11 +205,6 @@ public class SmartFridge extends ElectableClient implements fridge {
 		System.out.println("You have ID: "+Integer.toString(SelfID.getPort()));
 		serverThread = new Thread(new RunServer(SelfID,this));
 		serverThread.start();
-	}
-	
-	public void stop(){
-		log("stop");
-		server.close();
 	}
 	
 	public static void main(String[] args){
