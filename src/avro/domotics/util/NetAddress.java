@@ -34,12 +34,6 @@ public class NetAddress {
 		if (ip == null){
 			return "";
 		}
-		String result = "";
-		for(byte a : ip.getAddress()){
-			int b = a;
-			result += String.valueOf(b)+'.';
-		}
-		result = result.substring(0, result.length()-1);
-		return result;
+		return ip.getHostAddress();
 	}
 }

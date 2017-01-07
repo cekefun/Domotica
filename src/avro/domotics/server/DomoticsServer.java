@@ -28,7 +28,7 @@ public class DomoticsServer extends ElectableClient implements DomServer{
 		}
 		String IP = "127.0.0.1";
 		if ( args.length > 1 ){
-			ID = Integer.valueOf(args[1]);
+			IP = args[1];
 		}
 		myServer.SelfID = new NetAddress(ID,IP);
 		if (myServer.SelfID.getIP() == null){
