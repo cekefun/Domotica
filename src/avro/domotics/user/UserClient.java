@@ -15,7 +15,7 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
-import avro.domotics.Electable;
+import avro.domotics.ElectableClient;
 import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.proto.user.User;
@@ -26,7 +26,7 @@ import asg.cliche.Command;
 import asg.cliche.ShellFactory;
 
 
-public class UserClient extends Electable implements User{
+public class UserClient extends ElectableClient implements User{
 	private Server server = null;
 	private NetAddress ServerID = null;
 	private String Name = "Foo";
@@ -479,5 +479,10 @@ public class UserClient extends Electable implements User{
 		System.out.print(Name+"> ");
 		return null;
 	}
+
+	/*@Override
+	public Void UpdateTemperature(double temperature) throws AvroRemoteException {
+		return null;
+	}*/
 
 }

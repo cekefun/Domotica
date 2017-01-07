@@ -12,8 +12,12 @@ public class NetAddress {
 		} catch (Exception e){
 			ip = null;
 		}
+		if(ip == null)
+		 throw new RuntimeException("Null ip in NetAddress");
 	}
-	
+	public String toString(){
+		return "" + ip + ":" + port;
+	}
 	public Integer getPort(){
 		return port;
 	}

@@ -27,10 +27,11 @@ import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.lights.Lights;
 import avro.domotics.proto.server.DomServer;
 import avro.domotics.proto.smartFridge.fridge;
+import avro.domotics.proto.thermostat.thermostat;
 import avro.domotics.proto.user.User;
 import avro.domotics.util.NetAddress;
 
-public abstract class Electable implements electable, Runnable {
+public abstract class ElectableClient extends Client implements electable, Runnable {
 	private Map<String,Set<Integer> > clients = new ConcurrentHashMap<String,Set<Integer> >();
 	private Map<Integer,SimpleEntry<CharSequence,Boolean>> users = new ConcurrentHashMap<Integer,SimpleEntry<CharSequence,Boolean>>();
 	private Map<CharSequence, CharSequence> addressList = new ConcurrentHashMap<CharSequence,CharSequence>();
@@ -49,9 +50,9 @@ public abstract class Electable implements electable, Runnable {
 	public Integer ServerID = 6789;
 	public String ServerIP = "127.0.0.1";
 	private Server server = null;
+	private double temperature = 0;
 	
-	public abstract int getID();
-	public abstract String getName();
+	
 	
 	public void stopserver(){
 		log("stopping server");
@@ -66,14 +67,11 @@ public abstract class Electable implements electable, Runnable {
 	
 	public void start(){}
 	
-	
-	public void log(String s){
-		System.err.println(this.getName() + " " + this.getID() + " says: " +s);
-	}
+
+
 	
 	public Map<CharSequence,List<Integer> > ConvertClients(boolean reput){
 		Map<CharSequence,List<Integer>> clientlist = new HashMap<>();
-		boolean reputmyself = false;
 		for(String key: clients.keySet()){
 			if(key.equalsIgnoreCase("server") && reput == true){
 				clients.get(key).remove(this.getID());
@@ -193,7 +191,7 @@ public abstract class Electable implements electable, Runnable {
 			NetAddress IP = new NetAddress(nextInChain, (String)addressList.get( tempchain));
 			log("sending election to Ip: " + IP.getIP() + "," + IP.getPort());
 			client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
-			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
+			electable.Callback proxy = (electable.Callback) SpecificRequestor.getClient(electable.Callback.class, client);
 			if(OwnID > LastID){
 				proxy.election(OwnID);
 			}
@@ -226,7 +224,7 @@ public abstract class Electable implements electable, Runnable {
 		log("Elected: LastID: " + _ElectedID + " NextInChain: " + nextInChain );
 		Transceiver client = null;
 		try{
-			NetAddress IP = new NetAddress(nextInChain,String.valueOf(addressList.get(String.valueOf(nextInChain))));
+			NetAddress IP = new NetAddress(nextInChain,(String)(addressList.get(Integer.toString(nextInChain))));
 			client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
 			electable.Callback proxy = (electable.Callback) SpecificRequestor.getClient(electable.Callback.class, client);
 			SetElected(_ElectedID);
@@ -283,8 +281,6 @@ public abstract class Electable implements electable, Runnable {
 			for(String key: clients.keySet()){
 				for(Integer ID: clients.get(key)){
 					try{
-						log("syncing " + key + " " + ID);
-						//client = new SaslSocketTransceiver(new InetSocketAddress(ID));
 						NetAddress IP = new NetAddress(ID,String.valueOf(addressList.get(ID.toString())));
 						if(IP.getIP() == null){
 							continue;
@@ -292,20 +288,15 @@ public abstract class Electable implements electable, Runnable {
 						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
 						switch (key) {
 						case "users":
-							//log("pre request");
+							log("syncing " + key + " " + ID);
 							User proxyU = (User) SpecificRequestor.getClient(User.class, client);
-							//log("pre client sync");
 							proxyU._sync(clientlist, userlist,addressList,SavedLights);
-							//log("After clientsync clients: "+clientlist + " users: "+userlist);
 							
 							break;
 						case "fridges":
-							//log("pre request");
+							log("syncing " + key + " " + ID);
 							fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
-							//log("pre fridge sync");
 							proxyF._sync(clientlist, userlist,addressList,SavedLights);
-							//proxyF._sync(new HashMap<CharSequence,List<Integer> >(), new HashMap<CharSequence,Map<CharSequence,Boolean>>());
-							//log("After fridgesync clients: "+clientlist + " users: "+userlist);
 							break;
 							
 						}
@@ -317,17 +308,16 @@ public abstract class Electable implements electable, Runnable {
 					}
 				}
 			}
-			//log("synched");
 		}
 		
 	}
 	public class pinger implements Runnable{
-		Electable ptr;
+		ElectableClient ptr;
 		int sleeper= 3000;
 		public boolean _run = true;
 		int threshold = 3;
 		
-		public pinger(Electable electable){
+		public pinger(ElectableClient electable){
 			ptr = electable;
 		}
 		public void stop(){
@@ -345,7 +335,10 @@ public abstract class Electable implements electable, Runnable {
 				pingserver();
 				int successes = 0;
 				int fails = 0;
+				log("keyset: " + clients.keySet());
+
 				for(String key: clients.keySet()){
+					log("iD: "+ clients.get(key));
 					for(Integer ID: clients.get(key)){
 						boolean runningsmooth = false;
 						if(PingMap.get(ID) == null){
@@ -354,8 +347,10 @@ public abstract class Electable implements electable, Runnable {
 						}
 						Transceiver client = null;
 						try{
-							NetAddress IP = new NetAddress(ID,String.valueOf(addressList.get(ID.toString())));
+							NetAddress IP = new NetAddress(ID,(String)(addressList.get(ID.toString())));
+							log("ip: " + IP);
 							if(IP.getIP() == null){
+								
 								continue;
 							}
 							client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
@@ -376,13 +371,12 @@ public abstract class Electable implements electable, Runnable {
 							case "fridges":
 								fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
 								runningsmooth = proxyF.IsAlive();
-								//proxyF._sync(new HashMap<CharSequence,List<Integer> >(), new HashMap<CharSequence,Map<CharSequence,Boolean>>());
-								//log("Pingsfridge");
 								break;
-							/*case "Thermostat":
-								Thermostat proxyT = (Thermostat) SpecificRequestor.getClient(Thermostat.class,client);
-								proxyT.IsAlive();
-								break;*/
+							case "thermostat":
+								thermostat proxyT = (thermostat) SpecificRequestor.getClient(thermostat.class,client);
+								runningsmooth = proxyT.IsAlive(ptr.SelfID.getIPStr(), ptr.getID());
+								log("temperature: " + temperature);
+								break;
 							}
 							
 							client.close();
@@ -406,6 +400,7 @@ public abstract class Electable implements electable, Runnable {
 							}
 							fails++;
 							log("objectID: " + ID + " Pinger Error :" +e);
+							e.printStackTrace();
 							pinginfo missping = PingMap.get(ID);
 							missping.missedpings ++;
 							if(missping.missedpings >= threshold){
@@ -516,6 +511,21 @@ public abstract class Electable implements electable, Runnable {
 	}
 	
 	@Override
+	public int ConnectThermostat(int SensorID,CharSequence IP) throws AvroRemoteException{
+		if (clients.get("thermostat") == null){
+			Set<Integer> values = new HashSet<Integer>();
+			clients.put("thermostat", values);
+		}
+		if( find(SensorID) ){
+			SensorID = getFreeID();
+		}
+		NetAddress toAdd = new NetAddress(SensorID,String.valueOf(IP));
+		clients.get("thermostat").add(SensorID);
+		addressList.put(toAdd.getPort().toString(), toAdd.getIPStr());
+		return SensorID;
+	}
+	
+	@Override
 	public int ConnectFridge(int FridgeID,CharSequence IP) throws AvroRemoteException {
 		if (clients.get("fridges") == null){
 			Set<Integer> values = new HashSet<Integer>();
@@ -612,6 +622,10 @@ public abstract class Electable implements electable, Runnable {
 					case "fridges":
 						fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
 						proxyF.IsAlive();
+						break;
+					case "thermostat":
+						thermostat proxyT = (thermostat) SpecificRequestor.getClient(thermostat.class,client);
+						proxyT.IsAlive(this.SelfID.getIPStr(),this.getID());
 						break;
 					}
 					client.close();
@@ -917,5 +931,9 @@ public abstract class Electable implements electable, Runnable {
 			}
 		}
 			
+	}
+	public Void UpdateTemperature(double temp){
+		this.temperature = temp;
+		return null;
 	}
 }

@@ -22,6 +22,10 @@
 			"request":[{"name":"LightID","type":"int"},{"name":"IP","type":"string"}],
 			"response":"int"
 		},
+		"ConnectThermostat":{
+			"request":[{"name":"SensorID","type":"int"},{"name":"IP","type":"string"}],
+			"response":"int"
+		},
 		"ConnectFridge":{
 			"request":[{"name":"FridgeID","type":"int"},{"name":"IP","type":"string"}],
 			"response":"int"
@@ -65,6 +69,10 @@
 		"IsAlive":{
 			"request":[],
 			"response":"boolean"
+		},
+		"UpdateTemperature":{
+			"request":[{"name":"temperature", "type":"double"}],
+			"response":"null"
 		}
 	}	
 }

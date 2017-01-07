@@ -2,14 +2,14 @@ package avro.domotics.server;
 
 
 
-import avro.domotics.Electable;
+import avro.domotics.ElectableClient;
 
 import avro.domotics.proto.server.DomServer;
 import avro.domotics.util.NetAddress;
 
 
 
-public class DomoticsServer extends Electable implements DomServer{
+public class DomoticsServer extends ElectableClient implements DomServer{
 	
 	public int getID(){
 		return SelfID.getPort();
@@ -32,7 +32,7 @@ public class DomoticsServer extends Electable implements DomServer{
 		}
 		myServer.SelfID = new NetAddress(ID,IP);
 		if (myServer.SelfID.getIP() == null){
-			System.out.println("invallid IP");
+			System.out.println("invalid IP");
 			System.exit(-1);
 		}
 		myServer.run();

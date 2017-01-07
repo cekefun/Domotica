@@ -14,14 +14,14 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
-import avro.domotics.Electable;
+import avro.domotics.ElectableClient;
 import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.smartFridge.fridge;
 import avro.domotics.user.UserClient;
 import avro.domotics.util.NetAddress;
 
 
-public class SmartFridge extends Electable implements fridge {
+public class SmartFridge extends ElectableClient implements fridge {
 	private Server server = null;
 	private NetAddress ServerID = null;
 	private List<CharSequence> contents = new Vector<CharSequence>();
@@ -195,6 +195,7 @@ public class SmartFridge extends Electable implements fridge {
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
 			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 			SelfID.setPort(proxy.ConnectFridge(SelfID.getPort(),SelfID.getIPStr()));
+			log("portandIp after connect: "+SelfID.getPort() + ":" +SelfID.getIPStr());
 			client.close();
 		} catch(IOException e){
 			System.err.println("Error connecting to server");
@@ -213,35 +214,10 @@ public class SmartFridge extends Electable implements fridge {
 	}
 	
 	public static void main(String[] args){
-		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
-		Integer ServerID = 6789;
-		String ServerIP = "127.0.0.1";
-		Integer FridgeID = 7777;
-		String FridgeIP = "127.0.0.1";
-		if (args.length>0){
-			ServerID = Integer.valueOf(args[0]);
-		}
-		if (args.length>1){
-			ServerIP = args[1];
-		}
-		if (args.length>2){
-			FridgeID = Integer.valueOf(args[2]);
-		}
-		if (args.length>3){
-			FridgeIP = args[3];
-		}
+		clientinfo info = mainstart("fridge" , args);
 
-		NetAddress ServerAddr = new NetAddress(ServerID,ServerIP);
-		if(ServerAddr.getIP() == null){
-			System.out.println("Invalid serverIP");
-			System.exit(-1);
-		}
-		NetAddress FridgeAddr = new NetAddress(FridgeID,FridgeIP);
-		if(FridgeAddr.getIP() == null){
-			System.out.println("Invalid fridgeIP");
-			System.exit(-1);
-		}
-		SmartFridge fridge = new SmartFridge(ServerAddr,FridgeAddr);
+
+		SmartFridge fridge = new SmartFridge(info.serverAddr, info.MyAddr);
 		fridge.start();
 		
 		fridge.standby();
