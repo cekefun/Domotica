@@ -343,7 +343,7 @@ public class UserClient extends ElectableClient implements User{
 			System.out.println("You are not connected");
 			return null;
 		}
-		log("Getting fridges");
+		log("Getting fridges from " + ServerID.getIPStr() + " " + ServerID.getPort());
 		String result = "";
 		Map<CharSequence, List<CharSequence>> fridges = new HashMap<CharSequence, List<CharSequence>>();// = new List<Integer>();
 		try{

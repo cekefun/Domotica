@@ -828,7 +828,7 @@ public abstract class ElectableClient extends Client implements electable, Runna
 			return result;
 		}
 		for(Integer ID: clients.get("fridges")){
-			NetAddress IP = new NetAddress(ID,String.valueOf(addressList.get(ID.toString())));//REVIEW
+			NetAddress IP = new NetAddress(ID,(String)(addressList.get(ID.toString())));//REVIEW
 			if(IP.getIP() == null){
 				continue;
 			}
