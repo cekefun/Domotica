@@ -1,9 +1,8 @@
 package avro.domotics.user;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,25 +58,10 @@ public class UserClient extends ElectableClient implements User{
 		serverThread = new Thread(serverRun);
 		serverThread.start();
 	}
-	
-	private static class NullOutputStream extends OutputStream {
-		public void write(int b){
-			return;
-		}
-		public void write(byte[]b){
-			return;
-		}
-		public void write(byte[]b, int off, int len){
-			return;
-		}
-		
-		public NullOutputStream(){
-			
-		}
-	}
+
 	
 	public void stop(){
-		log("stop");
+		//log("stop");
 		server.close();
 	}
 	
@@ -88,7 +72,7 @@ public class UserClient extends ElectableClient implements User{
 		}
 		public void run(){
 			try{
-				log("listening");
+				//log("listening");
 				server = new SaslSocketServer(new SpecificResponder(User.class, ptr),new InetSocketAddress(SelfID.getIP(),SelfID.getPort()));
 			} catch(IOException e){
 				System.err.println("[error] Failed to start server");
@@ -125,7 +109,11 @@ public class UserClient extends ElectableClient implements User{
 		}
 
 		this.start();
-		this.standby();
+		try{
+			this.standby();
+		} catch(Exception e){
+			
+		}
 	}
 	
 	@Command
@@ -293,12 +281,69 @@ public class UserClient extends ElectableClient implements User{
 	}
 	
 	@Command
+	public String getTemperature(){
+		if (server == null){
+			return "You are not connected";
+		}
+		String result = "It is ";
+		Double Temperature = 0.0;
+		try{
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
+			Temperature = proxy.GetTemperature();
+			client.close();
+		} catch(IOException e){
+			System.out.println("Could not connect to the server");
+			System.err.println("Error connecting to server");
+			e.printStackTrace(System.err);
+		}
+		if (Temperature == 0.0){
+			return "No sensor connected";
+		}
+		DecimalFormat df = new DecimalFormat("#.##");
+		result+=df.format(Temperature);
+		result += " degrees.";
+		return result;
+	}
+	
+	@Command
+	public String getTemperatureHistory(){
+		if (server == null){
+			return "You are not connected";
+		}
+		List<Double> Temperature = null;
+		try{
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(ServerID.getIP(),ServerID.getPort()));
+			electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
+			Temperature = proxy.GetTemperatureHistory();
+			client.close();
+		} catch(IOException e){
+			System.out.println("Could not connect to the server");
+			System.err.println("Error connecting to server");
+			e.printStackTrace(System.err);
+		}
+		if (Temperature == null){
+			return "No sensor connected";
+		}
+		String result = "";
+		DecimalFormat df = new DecimalFormat("#.##");
+		for (Double temp: Temperature){
+			result += (Temperature.indexOf(temp)+1);
+			result += ". ";
+			result += df.format(temp);
+			result += " dergrees.";
+			result += '\n';
+		}
+		return result;
+	}
+	
+	@Command
 	public String getFridges(){
 		if (server == null){
 			System.out.println("You are not connected");
 			return null;
 		}
-		log("Getting fridges");
+		//log("Getting fridges");
 		String result = "";
 		Map<CharSequence, List<CharSequence>> fridges = new HashMap<CharSequence, List<CharSequence>>();// = new List<Integer>();
 		try{
@@ -418,7 +463,6 @@ public class UserClient extends ElectableClient implements User{
 	
 	public static void main(String[] args){
 		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
-		//System.setErr(new PrintStream(new NullOutputStream()));
 		Integer ServerID = 6789;
 		String ServerIP = "127.0.0.1";
 		String Name = "Bob";

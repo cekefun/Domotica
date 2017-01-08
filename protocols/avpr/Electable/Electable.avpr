@@ -67,12 +67,20 @@
 			"response":"null"
 		},
 		"IsAlive":{
-			"request":[],
+			"request":[{"name":"IPaddr","type":"string"},{"name":"ID","type":"int"}],
 			"response":"boolean"
 		},
 		"UpdateTemperature":{
 			"request":[{"name":"temperature", "type":"double"}],
 			"response":"null"
+		},
+		"GetTemperature":{
+			"request":[],
+			"response":"double"
+		},
+		"GetTemperatureHistory":{
+			"request":[],
+			"response":{"type":"array","items":"double"}
 		}
 	}	
 }

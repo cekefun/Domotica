@@ -5,20 +5,14 @@ import java.net.InetSocketAddress;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
-import org.apache.avro.ipc.SaslSocketTransceiver;
 import org.apache.avro.ipc.Server;
-import org.apache.avro.ipc.Transceiver;
-import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
-import avro.domotics.proto.Electable.electable;
-import avro.domotics.proto.lights.Lights;
 import avro.domotics.util.NetAddress;
 
 public abstract class SimpleClient extends Client {
 	protected Thread serverRunning = null;
 	private Server server = null;
-	private NetAddress OwnID;
 	
 	public boolean IsAlive() throws AvroRemoteException {
 		return true;

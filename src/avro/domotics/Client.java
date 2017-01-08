@@ -8,7 +8,8 @@ public abstract class Client {
 	
 	public abstract String getName();
 	public void log(String s){
-		System.err.println(this.getName() + " " + this.getID() + " says: " +s);
+		return;
+		//System.err.println("[" + Thread.currentThread().getName() + "] " + this.getName() + " " + this.getID() + " says: " +s);
 	}
 	public static class clientinfo{
 		public NetAddress serverAddr;
@@ -45,7 +46,7 @@ public abstract class Client {
 		clientinfo returnval = new clientinfo();
 		returnval.MyAddr = MyAddr;
 		returnval.serverAddr = ServerAddr;
-		System.err.println("MyAddr: " + MyAddr);
+		//System.err.println("MyAddr: " + MyAddr);
 		return returnval;
 	}
 }

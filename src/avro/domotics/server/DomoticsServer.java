@@ -7,8 +7,6 @@ import avro.domotics.ElectableClient;
 import avro.domotics.proto.server.DomServer;
 import avro.domotics.util.NetAddress;
 
-
-
 public class DomoticsServer extends ElectableClient implements DomServer{
 	
 	public int getID(){
@@ -35,10 +33,11 @@ public class DomoticsServer extends ElectableClient implements DomServer{
 			System.out.println("invalid IP");
 			System.exit(-1);
 		}
+		System.out.println("Server is starting");
 		myServer.run();
 	}
 	@Override
-	public boolean IsAlive(){
+	public boolean IsAlive(CharSequence IPaddr, int ID){
 		return true;
 	}
 	

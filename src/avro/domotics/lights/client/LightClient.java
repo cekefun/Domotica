@@ -9,7 +9,6 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import avro.domotics.SimpleClient;
-import avro.domotics.SimpleClient.ServerThread;
 import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.lights.Lights;
 import avro.domotics.util.NetAddress;

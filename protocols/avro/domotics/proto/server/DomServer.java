@@ -8,12 +8,12 @@ package avro.domotics.proto.server;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface DomServer {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"DomServer\",\"namespace\":\"avro.domotics.proto.server\",\"types\":[],\"messages\":{\"IsAlive\":{\"request\":[],\"response\":\"boolean\"}}}");
-  boolean IsAlive() throws org.apache.avro.AvroRemoteException;
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"DomServer\",\"namespace\":\"avro.domotics.proto.server\",\"types\":[],\"messages\":{\"IsAlive\":{\"request\":[{\"name\":\"IPaddr\",\"type\":\"string\"},{\"name\":\"ID\",\"type\":\"int\"}],\"response\":\"boolean\"}}}");
+  boolean IsAlive(java.lang.CharSequence IPaddr, int ID) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
   public interface Callback extends DomServer {
     public static final org.apache.avro.Protocol PROTOCOL = avro.domotics.proto.server.DomServer.PROTOCOL;
-    void IsAlive(org.apache.avro.ipc.Callback<java.lang.Boolean> callback) throws java.io.IOException;
+    void IsAlive(java.lang.CharSequence IPaddr, int ID, org.apache.avro.ipc.Callback<java.lang.Boolean> callback) throws java.io.IOException;
   }
 }

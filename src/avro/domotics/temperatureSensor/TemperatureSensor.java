@@ -2,6 +2,7 @@ package avro.domotics.temperatureSensor;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.text.DecimalFormat;
 import java.util.Random;
 
 import org.apache.avro.AvroRemoteException;
@@ -10,7 +11,6 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 
 import avro.domotics.SimpleClient;
-import avro.domotics.SimpleClient.ServerThread;
 import avro.domotics.proto.Electable.electable;
 import avro.domotics.proto.thermostat.thermostat;
 import avro.domotics.util.NetAddress;
@@ -58,7 +58,7 @@ import avro.domotics.util.NetAddress;
 		
 		public clientpinger(TemperatureSensor owner){
 			ptr = owner;
-			log("hello");
+			//log("hello");
 			ptr.temperature = ((rand.nextDouble() + 0.5) * 10) + 10;
 		}
 		
@@ -75,7 +75,7 @@ import avro.domotics.util.NetAddress;
 				catch(InterruptedException e){}
 				Transceiver client = null;
 				try{
-					log("update: " + ptr.serverIP + ":" + ptr.serverID);
+					//log("update: " + ptr.serverIP + ":" + ptr.serverID);
 					client = new SaslSocketTransceiver(new InetSocketAddress(ptr.serverIP,ptr.serverID));
 					electable proxy = (electable) SpecificRequestor.getClient(electable.class, client);
 					if(rand.nextDouble()> 0.5){
@@ -84,11 +84,13 @@ import avro.domotics.util.NetAddress;
 					else{
 						temperature = temperature - (rand.nextDouble());
 					}
-					log("temperature: " + temperature);
+					DecimalFormat df = new DecimalFormat("#.##");
+					System.out.println(df.format(temperature));
+					//log("temperature: " + temperature);
 					proxy.UpdateTemperature(temperature);
 				}
 				catch(IOException e){
-					log("Ioexception thermostat pinging"+ e);
+					//log("Ioexception thermostat pinging"+ e);
 				}
 				finally{
 					try {
@@ -154,7 +156,7 @@ import avro.domotics.util.NetAddress;
 	public boolean IsAlive(CharSequence IPaddr, int ID) throws AvroRemoteException {
 		serverID = ID;
 		serverIP = IPaddr.toString();
-		log("newID: " + ID + ":" + IPaddr.toString());
+		//log("newID: " + ID + ":" + IPaddr.toString());
 		return true;
 	}
 
