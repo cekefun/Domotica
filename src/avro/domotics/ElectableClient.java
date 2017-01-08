@@ -56,6 +56,7 @@ public abstract class ElectableClient extends Client implements electable, Runna
 	protected Server server = null;
 	private Object ElectionLock = new Object(); 
 	private boolean ElectionBusy = false;
+	public List<Double> temperatureHistory = new ArrayList<Double>();
 
 	public void stopserver(){
 		log("cancelling pinger");
@@ -322,15 +323,16 @@ public abstract class ElectableClient extends Client implements electable, Runna
 						if(IP.getIP() == null){
 							continue;
 						}
-						client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
 						switch (key) {
 						case "users":
 							log("syncing " + key + " " + ID);
+							client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
 							User proxyU = (User) SpecificRequestor.getClient(User.class, client);
 							proxyU._sync(clientlist, userlist,addressList,SavedLights);
 							break;
 						case "fridges":
 							log("syncing " + key + " " + ID);
+							client = new SaslSocketTransceiver(new InetSocketAddress(IP.getIP(),IP.getPort()));
 							fridge proxyF = (fridge) SpecificRequestor.getClient(fridge.class,client);
 							proxyF._sync(clientlist, userlist,addressList,SavedLights);
 							break;	
@@ -984,6 +986,11 @@ public abstract class ElectableClient extends Client implements electable, Runna
 	}
 	public Void UpdateTemperature(double temp){
 		this.temperature = temp;
+		if(this.temperatureHistory.size() >=3){
+			this.temperatureHistory.remove(0);
+
+		}
+		this.temperatureHistory.add(temp);
 		return null;
 	}
 }
