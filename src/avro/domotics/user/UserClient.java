@@ -61,7 +61,7 @@ public class UserClient extends ElectableClient implements User{
 
 	
 	public void stop(){
-		//log("stop");
+		log("stop");
 		server.close();
 	}
 	
@@ -72,7 +72,7 @@ public class UserClient extends ElectableClient implements User{
 		}
 		public void run(){
 			try{
-				//log("listening");
+				log("listening");
 				server = new SaslSocketServer(new SpecificResponder(User.class, ptr),new InetSocketAddress(SelfID.getIP(),SelfID.getPort()));
 			} catch(IOException e){
 				System.err.println("[error] Failed to start server");
@@ -343,7 +343,7 @@ public class UserClient extends ElectableClient implements User{
 			System.out.println("You are not connected");
 			return null;
 		}
-		//log("Getting fridges");
+		log("Getting fridges");
 		String result = "";
 		Map<CharSequence, List<CharSequence>> fridges = new HashMap<CharSequence, List<CharSequence>>();// = new List<Integer>();
 		try{
