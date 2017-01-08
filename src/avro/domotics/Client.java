@@ -18,7 +18,7 @@ public abstract class Client {
 		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
 		Integer ServerID = 6789;
 		String ServerIP = "127.0.0.1";
-		Integer FridgeID = 7777;
+		Integer FridgeID = 6789;
 		String FridgeIP = "127.0.0.1";
 		if (args.length>0){
 			ServerID = Integer.valueOf(args[0]);
