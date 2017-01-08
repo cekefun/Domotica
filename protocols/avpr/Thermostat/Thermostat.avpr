@@ -1,0 +1,14 @@
+{
+	"namespace":"avro.domotics.proto.thermostat",
+	"protocol":"thermostat",
+	"messages":{
+		"GetTemperature":{
+			"request":[],
+			"response":"double"
+		},
+		"IsAlive":{
+			"request":[{"name":"IPaddr","type":"string"},{"name":"ID","type":"int"}],
+			"response":"boolean"
+		}
+	}
+}

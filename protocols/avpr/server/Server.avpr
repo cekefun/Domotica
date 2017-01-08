@@ -1,0 +1,10 @@
+{
+	"namespace":"avro.domotics.proto.server",
+	"protocol":"DomServer",
+	"messages":{
+		"IsAlive":{
+			"request":[{"name":"IPaddr","type":"string"},{"name":"ID","type":"int"}],
+			"response":"boolean"
+		}
+	}	
+}
